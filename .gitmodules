@@ -1,0 +1,15 @@
+[submodule "versioning-xethub"]
+	path = versioning-xethub
+	url = https://xethub.com/xdssio/versioning-xethub
+[submodule "xethub"]
+	path = xethub
+	url = https://xethub.com/xdssio/versioning-xethub
+[submodule "lfs"]
+	path = lfs
+	url = https://github.com/xdssio/versioning-lfs
+[submodule "dvc"]
+	path = dvc
+	url = https://github.com/xdssio/versioning-dvc
+[submodule "annex"]
+	path = annex
+	url = https://github.com/xdssio/versioning-annex
