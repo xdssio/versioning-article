@@ -164,3 +164,4 @@ xethub/
 lfs/
 data/
 mock/
+*.pyc

@@ -66,7 +66,7 @@ def upload_xethub_merged(helper):
     helper.track(time.time() - start_time, tech='xethub', merged=True)
 
 
-def benchmark(data_dir):
+def benchmark(data_dir, output_file):
     files = list(glob(f"{data_dir}/*.parquet"))
     print(f"benchmark- {data_dir} : {len(files)} files")
 
@@ -74,13 +74,15 @@ def benchmark(data_dir):
     for file in tqdm(files):
         helper.set_file(file)
         # Create merged file
-        upload_dvc(helper)
-        upload_dvc_merged(helper)
-        upload_lfs(helper)
-        upload_lfs_merged(helper)
-        upload_xethub(helper)
-        upload_xethub_merged(helper)
-    helper.export(f"output.csv")
+        helper.record(upload_dvc, tech='dvc', merged=False)
+        helper.record(upload_dvc_merged, tech='dvc', merged=True)
+        helper.record(upload_lfs, tech='lfs', merged=False)
+        helper.record(upload_lfs_merged, tech='lfs', merged=True)
+        helper.record(upload_xethub, tech='xethub', merged=False)
+        helper.record(upload_xethub_merged, tech='xethub', merged=True)
+
+
+    helper.export(output_file)
 
 
 def run_dvc_benchmark(repo: str = 'dvc', data: str = 'mock'):
@@ -139,6 +141,9 @@ if __name__ == '__main__':
     p.add_argument(
         '--dir', default='mock',
         help='The directory in which to download data and perform searches.')
+    p.add_argument(
+        '--output', default='output.csv',
+        help='The the location for the csv output file.')
 
     args = p.parse_args()
-    benchmark(args.dir)
+    benchmark(args.dir, args.output)
