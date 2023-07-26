@@ -42,7 +42,6 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 3. `pip install pyxet`
 
 4. (Optional) [Install CLI](https://xethub.com/assets/docs/getting-started/installation)
-5.
 
 #### LFS setup
 
@@ -58,7 +57,6 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 7. `git lfs track .`
 
 #### DVC setup
-
 1. `git clone https://github.com/${USER}/versioning-dvc dvc`
 2. [Install CLI](https://dvc.org/doc/install)
 3. `pip install dvc`

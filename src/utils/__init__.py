@@ -1,6 +1,8 @@
 import os
 import os.path as path
+import pathlib
 import shutil
+import psutil
 import typing
 from datetime import datetime as dt
 import pandas as pd
@@ -9,6 +11,7 @@ from bs4 import BeautifulSoup
 import re
 import tqdm
 import duckdb
+import time
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
@@ -98,24 +101,61 @@ class RunHelper:
         self.file_count = file_count
         self.datetime = dt.now().strftime("%d/%m/%Y %H:%M:%S")
         self.steps = []
-        self.file = None
+        self.filename = None
         self.step = -1
 
     def set_file(self, filename: str):
         self.filename = filename
+        # TODO add file bytes size
         self.step += 1
 
-    def track(self, value: typing.Any, tech: str, merged: bool = True):
+    def bytes_in_rest(self, duration: float):
+        net_io_before_sleep = psutil.net_io_counters()
+        time.sleep(duration)
+        net_io_after_sleep = psutil.net_io_counters()
+        sleep_bytes_sent = net_io_after_sleep.bytes_sent - net_io_before_sleep.bytes_sent
+        sleep_bytes_recv = net_io_after_sleep.bytes_recv - net_io_before_sleep.bytes_recv
+        return sleep_bytes_sent, sleep_bytes_recv
+
+    def record(self, func: typing.Callable, tech: str, merged: bool = True, *args, **kwargs, ):
+        start_func_time = time.time()
+        net_io_before = psutil.net_io_counters()
+        func(*args, **kwargs)
+        net_io_after = psutil.net_io_counters()
+
+        func_time = time.time() - start_func_time
+        bytes_sent = net_io_after.bytes_sent - net_io_before.bytes_sent
+        bytes_recv = net_io_after.bytes_recv - net_io_before.bytes_recv
+
+        sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(func_time)
+
+        self.steps.append({'time': func_time,
+                           'tech': tech,
+                           'merged': merged,
+                           'filename': self.filename,
+                           'step': self.step,
+                           'bytes_sent': bytes_sent,
+                           'bytes_recv': bytes_recv,
+                           'sleep_bytes_sent': sleep_bytes_sent,
+                           'sleep_bytes_recv': sleep_bytes_recv
+                           })
+
+    def track(self, duration: float, tech: str, merged: bool = True):
         self.steps.append(
-            {'time': value,
+            {'time': duration,
              'tech': tech,
              'merged': merged,
              'filename': self.file,
              'step': self.step})
 
-    def export(self, output: str = 'output.csv'):
+    def _get_output(self):
         df = pd.DataFrame(self.steps)
         df['data_dir'] = self.data_dir
         df['file_count'] = self.file_count
         df['datetime'] = self.datetime
+        return df
+
+    def export(self, output: str = 'output.csv'):
+        pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
+        df = self._get_output()
         df.to_csv(output, index=False)
