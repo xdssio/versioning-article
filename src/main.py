@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import os
 import os.path as path
@@ -9,29 +7,80 @@ import time
 import duckdb
 from tqdm import tqdm
 from glob import glob
-from aim import Run
+from collections import namedtuple
+
+from src.utils import RunHelper
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
 DOWNLOAD_CHOICES = ['all', '2023', '2022', '2021', '2020', '2019']
 MERGED_FILENAME = 'merged.parquet'
 
+RunInfo = namedtuple('RunInfo', ['run', 'step', 'file'])
+
+sleep_time = 0.5
+
+
+
+
+
+def upload_dvc(helper: RunHelper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='dvc', merged=False)
+
+
+def upload_lfs(helper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='lfs', merged=False)
+
+
+def upload_xethub(helper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='xethub', merged=False)
+
+
+def upload_dvc_merged(helper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='dvc', merged=True)
+
+
+def upload_lfs_merged(helper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='lfs', merged=True)
+
+
+def upload_xethub_merged(helper):
+    start_time = time.time()
+    """Do stuff"""
+    time.sleep(sleep_time)
+    helper.track(time.time() - start_time, tech='xethub', merged=True)
+
 
 def benchmark(data_dir):
-    files = list(glob(f"{data_dir}/.parquet"))
-    run = Run()
-    run["hparams"] = {
-        "learning_rate": 0.001,
-        "batch_size": 32,
-    }
-    run["data_dir"] = data_dir
-    run['file_count'] = len(files)
+    files = list(glob(f"{data_dir}/*.parquet"))
+    print(f"benchmark- {data_dir} : {len(files)} files")
 
-    for i, file in tqdm(enumerate(files)):
-        run.track(i, name='loss', step=i, context={"subset": "train"})
-        time.sleep(1)
-        # upload_dvc()
-        # upload_dvc_merged()
+    helper = RunHelper(data_dir=data_dir, file_count=len(files))
+    for file in tqdm(files):
+        helper.set_file(file)
+        # Create merged file
+        upload_dvc(helper)
+        upload_dvc_merged(helper)
+        upload_lfs(helper)
+        upload_lfs_merged(helper)
+        upload_xethub(helper)
+        upload_xethub_merged(helper)
+    helper.export(f"output.csv")
 
 
 def run_dvc_benchmark(repo: str = 'dvc', data: str = 'mock'):
@@ -85,7 +134,7 @@ def run_dvc_benchmark(repo: str = 'dvc', data: str = 'mock'):
     print(f"Time taken for DVC for {commit_count} commits is {total_duration:.2f} seconds")
 
 
-def main():
+if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
     p.add_argument(
         '--dir', default='mock',
@@ -93,7 +142,3 @@ def main():
 
     args = p.parse_args()
     benchmark(args.dir)
-
-
-if __name__ == '__main__':
-    main()
