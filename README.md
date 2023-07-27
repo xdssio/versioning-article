@@ -111,6 +111,9 @@ scalene -m pytest tests
 
 python src/generate.py --dir=mock --count=2 --rows=1000
 scalene src/main.py --dir=mock # for quick testing
+# or
+export PYTHONPATH="$(pwd):$PYTHONPATH" 
+python src/main.py --dir=mock
 
 ```
 
