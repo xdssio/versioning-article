@@ -6,11 +6,11 @@ from loguru import logger
 
 from src.utils import merge_files
 from src.utils.metrics import MetricsHelper
-from src.utils.git import GitHelper
+from src.utils.helper import Helper
 
 logger.add("logs/{time}.log")
 
-helper = GitHelper()
+helper = Helper()
 
 
 def benchmark(data: str, output_file: str = 'output.csv'):
