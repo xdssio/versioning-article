@@ -30,15 +30,15 @@ def benchmark(data: str, output_file: str = 'output.csv'):
         metrics.record(helper.merge_files, tech='m1', merged=True, new_filename=filepath,
                        merged_filename=merged_filepath)
         # copy locally
-        # metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='dvc')
-        # metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='dvc')
-        # metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='lfs')
-        # metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs')
-        #
-        # metrics.record(helper.dvc_upload, tech='dvc', merged=False, filepath=filepath)
-        # metrics.record(helper.dvc_upload, tech='dvc', merged=True, filepath=merged_filepath)
-        # metrics.record(helper.lfs_upload, tech='lfs', merged=False, filepath=filepath)
-        # metrics.record(helper.lfs_upload, tech='lfs', merged=True, filepath=merged_filepath)
+        metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='dvc')
+        metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='dvc')
+        metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='lfs')
+        metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs')
+
+        metrics.record(helper.dvc_upload, tech='dvc', merged=False, filepath=filepath)
+        metrics.record(helper.dvc_upload, tech='dvc', merged=True, filepath=merged_filepath)
+        metrics.record(helper.lfs_upload, tech='lfs', merged=False, filepath=filepath)
+        metrics.record(helper.lfs_upload, tech='lfs', merged=True, filepath=merged_filepath)
 
         metrics.record(helper.xethub_upload, tech='xethub', merged=False, filepath=filepath)
         logger.debug(f"sleeping for 5 seconds")
