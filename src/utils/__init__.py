@@ -94,7 +94,7 @@ def download(download_dir: str, choices: str, limit: int):
                 file.write(response.content)
 
 
-class RunHelper:
+class MetricsHelper:
 
     def __init__(self, data_dir: str, file_count: int):
         self.data_dir = data_dir
@@ -122,12 +122,10 @@ class RunHelper:
         net_io_before = psutil.net_io_counters()
         func(*args, **kwargs)
         net_io_after = psutil.net_io_counters()
-
         func_time = time.time() - start_func_time
         bytes_sent = net_io_after.bytes_sent - net_io_before.bytes_sent
         bytes_recv = net_io_after.bytes_recv - net_io_before.bytes_recv
-
-        sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(func_time)
+        sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(1)
 
         self.steps.append({'time': func_time,
                            'tech': tech,
@@ -136,8 +134,8 @@ class RunHelper:
                            'step': self.step,
                            'bytes_sent': bytes_sent,
                            'bytes_recv': bytes_recv,
-                           'sleep_bytes_sent': sleep_bytes_sent,
-                           'sleep_bytes_recv': sleep_bytes_recv
+                           'bytes_sent_1s': sleep_bytes_sent,
+                           'bytes_recv_1s': sleep_bytes_recv
                            })
 
     def track(self, duration: float, tech: str, merged: bool = True):
@@ -159,3 +157,7 @@ class RunHelper:
         pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
         df = self._get_output()
         df.to_csv(output, index=False)
+
+
+class GitHelper():
+    pass

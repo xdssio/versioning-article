@@ -7,24 +7,18 @@ import time
 import duckdb
 from tqdm import tqdm
 from glob import glob
-from collections import namedtuple
 
-from src.utils import RunHelper
+from src.utils import MetricsHelper
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
 DOWNLOAD_CHOICES = ['all', '2023', '2022', '2021', '2020', '2019']
 MERGED_FILENAME = 'merged.parquet'
 
-RunInfo = namedtuple('RunInfo', ['run', 'step', 'file'])
-
 sleep_time = 0.5
 
 
-
-
-
-def upload_dvc(helper: RunHelper):
+def upload_dvc(helper: MetricsHelper):
     start_time = time.time()
     """Do stuff"""
     time.sleep(sleep_time)
@@ -70,19 +64,18 @@ def benchmark(data_dir, output_file):
     files = list(glob(f"{data_dir}/*.parquet"))
     print(f"benchmark- {data_dir} : {len(files)} files")
 
-    helper = RunHelper(data_dir=data_dir, file_count=len(files))
+    metrics = MetricsHelper(data_dir=data_dir, file_count=len(files))
     for file in tqdm(files):
-        helper.set_file(file)
+        metrics.set_file(file)
         # Create merged file
-        helper.record(upload_dvc, tech='dvc', merged=False)
-        helper.record(upload_dvc_merged, tech='dvc', merged=True)
-        helper.record(upload_lfs, tech='lfs', merged=False)
-        helper.record(upload_lfs_merged, tech='lfs', merged=True)
-        helper.record(upload_xethub, tech='xethub', merged=False)
-        helper.record(upload_xethub_merged, tech='xethub', merged=True)
+        metrics.record(upload_dvc, tech='dvc', merged=False)
+        metrics.record(upload_dvc_merged, tech='dvc', merged=True)
+        metrics.record(upload_lfs, tech='lfs', merged=False)
+        metrics.record(upload_lfs_merged, tech='lfs', merged=True)
+        metrics.record(upload_xethub, tech='xethub', merged=False)
+        metrics.record(upload_xethub_merged, tech='xethub', merged=True)
 
-
-    helper.export(output_file)
+    metrics.export(output_file)
 
 
 def run_dvc_benchmark(repo: str = 'dvc', data: str = 'mock'):
