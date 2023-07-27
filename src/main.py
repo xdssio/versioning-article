@@ -15,7 +15,7 @@ helper = Helper()
 
 
 def benchmark(data: str, output_file: str = 'output.csv'):
-    files = list(glob(f"{data}/*.parquet"))
+    files = sorted(glob(f"{data}/*.parquet"))
     logger.info(f"benchmark- {data} : {len(files)} files")
     merged_filepath = path.join(data, 'merged.parquet')
     file_count = len(files)
@@ -39,12 +39,8 @@ def benchmark(data: str, output_file: str = 'output.csv'):
         metrics.record(helper.dvc_upload, tech='dvc', merged=True, filepath=merged_filepath)
         metrics.record(helper.lfs_upload, tech='lfs', merged=False, filepath=filepath)
         metrics.record(helper.lfs_upload, tech='lfs', merged=True, filepath=merged_filepath)
-
         metrics.record(helper.xethub_upload, tech='xethub', merged=False, filepath=filepath)
-        logger.debug(f"sleeping for 5 seconds")
         metrics.record(helper.xethub_upload, tech='xethub', merged=True, filepath=merged_filepath)
-
-        helper.xet_remove(merged_filepath)
 
     metrics.export(output_file)
 
