@@ -49,24 +49,36 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
 3. `cd lfs`
 4. `git lfs install`
-5. Create a *.lfsconfig* file with:
-   ```yaml
-    [lfs]
-    url = https://<your-bucket-name>.s3.amazonaws.com
-    ``` 
-7. `git lfs track *.parquet
-8. Setup git  config:
-   ```yaml
-   git config lfs.storage.type "s3"
-   git config lfs.storage.s3.bucket "versioning-article"
-   git config lfs.storage.s3.region "us-west-2"  # your S3 bucket region
-   git config lfs.storage.s3.accesskeyid "YOUR_AWS_ACCESS_KEY_ID"  
-   git config lfs.storage.s3.secretaccesskey "YOUR_AWS_SECRET_ACCESS_KEY"
+5. `git lfs track '*.parquet'`
+6. Create a *.lfsconfig* file a url to our local server:
+   ```bash
+   echo "[lfs]
+    url = http://localhost:9999/git-lfs/blog.dermah.com.git" > .lfsconfig
+   ```
 
+7. Edit the file in 'lfs-server/config/default.json:
+    ```json
+    ...
+    "store": {
+     "type": "s3",
+     "options": {
+         "bucket": "<your bucket>",
+         "region": "<your region>"
+     }
+    ```
+8. Run local
+   lfs-server
+   ```
+   cd lfs-server
+   npx node-git-lfs
+   # if you get problems try:
+   npx "github:Dermah/node-git-lfs#4b79bee4"
+   ```
 
-8. git lfs track --external --local --set-upstream s3://bucket_name` ??
+* Thanks to [@Sputnik/Dermah](https://blog.dermah.com/2020/05/26/how-to-be-stingy-git-lfs-on-your-own-s3-bucket/)
 
 #### DVC setup
+
 1. `git clone https://github.com/${USER}/versioning-dvc dvc`
 2. [Install CLI](https://dvc.org/doc/install)
 3. `pip install dvc dvc-s3`
