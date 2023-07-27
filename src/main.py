@@ -27,7 +27,6 @@ def benchmark(data: str, output_file: str = 'output.csv'):
         metrics.set_file(filepath=filepath, step=step)
         # Create merged file
         metrics.record(merge_files, tech='m1', merged=True, new_filename=filepath, merged_filename=merged_filepath)
-
         # copy locally
         metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='dvc')
         metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='dvc')
@@ -42,7 +41,6 @@ def benchmark(data: str, output_file: str = 'output.csv'):
         metrics.record(helper.xethub_upload, tech='xethub', merged=True, filepath=merged_filepath)
 
     metrics.export(output_file)
-    helper.output_upload()
 
 
 if __name__ == '__main__':
