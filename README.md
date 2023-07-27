@@ -93,6 +93,8 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 ## Run
 
 ```bash
+python src/download.py --dir=data --download=all --limit=40
+
 scalene src/main.py --dir=data
 # recommended:
 git add profile.*

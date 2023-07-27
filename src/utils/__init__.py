@@ -57,42 +57,7 @@ def merge_files(new_filename:str, merged_filename: str):
     return merged_filename
 
 
-def download(download_dir: str, choices: str, limit: int):
-    '''
-    Extract URLs which match the patterns and download them into download_dir
-    :param download_dir:
-        The directory to download the data
-    :param choices:
-        Year to download or 'all'
-    '''
-    print("download_data")
-    if path.exists(download_dir) and not path.isdir(download_dir):
-        raise RuntimeError("Cannot download into " + download_dir)
-    if not path.exists(download_dir):
-        os.mkdir(download_dir)
-    response = requests.get(NYC_TLC_SITE)
-    soup = BeautifulSoup(response.content, 'html.parser')
 
-    anchor_tags = soup.find_all('a', href=True)
-
-    if choices == 'all':
-        pattern = re.compile(HFVHFV_PATTERN)
-    else:
-        pattern = re.compile(HFVHFV_PATTERN + choices)
-    matching_urls = [tag['href'] for tag in anchor_tags if pattern.search(tag['href'])]
-    download_count = 0
-
-    for url in tqdm.tqdm(matching_urls):
-        download_count += 1
-        if download_count >= limit > 0:
-            break
-        filename = path.join(download_dir, url.split('/')[-1])
-        if not path.exists(filename):
-            print(f"Downloading {filename}")
-            response = requests.get(url)
-            # Extract the filename from the URL
-            with open(filename, 'wb') as file:
-                file.write(response.content)
 
 
 
