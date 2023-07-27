@@ -1,4 +1,5 @@
 import os
+import pathlib
 import shutil
 import subprocess
 from loguru import logger
@@ -8,9 +9,11 @@ import os.path as path
 
 
 class GitHelper:
-    def __init__(self, xet_repo: str = 'xet://xdssio/versioning-xethub/main'):
+    def __init__(self):
+        origins = subprocess.run('git remote -v', shell=True, cwd='xethub', stdout=subprocess.PIPE).stdout.decode()
+        origin = origins.split('\n')[0].split('\t')[1].split(' ')[0].split('/')
         self.fs = pyxet.XetFS()
-        self.xet_repo = xet_repo
+        self.xet_repo = f"xet://{origin[-2]}/{origin[-1].replace('.git','')}/main"
 
     @staticmethod
     def copy_file(filepath: str, repo: str):
@@ -62,11 +65,13 @@ class GitHelper:
         self._git_upload(filepath, 'lfs')
 
     def xethub_upload(self, filepath: str, pyxet_api: bool = True):
+        filename = os.path.basename(filepath)
         if pyxet_api:
-            filename = os.path.basename(filepath)
             with self.fs.transaction:
-                self.fs.put(filepath, f"xet://xdssio/versioning-xethub/main/{filename}")
+                self.fs.put(filepath, f"{self.xet_repo}/{filename}")
         else:
+            if filename not in pathlib.Path('xethub').glob('*'):
+                self.copy_file(filepath, f"xethub/{filename}")
             self._git_upload(filepath, 'xethub')
 
     def output_upload(self, output: str = 'output.csv'):
@@ -81,3 +86,10 @@ class GitHelper:
                         COPY (SELECT * FROM read_parquet(['{new_filepath}', '{merged_filepath}'])) TO '{merged_filepath}' (FORMAT 'parquet');
                         """)
         return merged_filepath
+
+    def xet_ls(self):
+        return self.fs.ls(self.xet_repo, detail=False)
+
+    def remove(self, filename: str):
+        with self.fs.transaction:
+            self.fs.rm(f"{self.xet_repo}/{filename}")

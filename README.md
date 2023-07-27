@@ -109,8 +109,8 @@ git push
 ```
 scalene -m pytest tests
 
-python src/generate.py --dir=mock --count=5 --rows=1000
-scalene src/main.py --dir=mock` # for quick testing
+python src/generate.py --dir=mock --count=2 --rows=1000
+scalene src/main.py --dir=mock # for quick testing
 
 ```
 

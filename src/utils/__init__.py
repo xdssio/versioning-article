@@ -1,17 +1,10 @@
 import os
 import os.path as path
-import pathlib
 import shutil
-import psutil
-import typing
-from datetime import datetime as dt
 import pandas as pd
-import requests
-from bs4 import BeautifulSoup
-import re
+import random
 import tqdm
 import duckdb
-import time
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
@@ -21,8 +14,7 @@ MOCK_COLUMNS = ['id', 'name', 'age']
 
 
 def generate_parquet(num_rows: int = 10):
-    import random
-    import pandas as pd
+
 
     rows = []
     for i in range(num_rows):

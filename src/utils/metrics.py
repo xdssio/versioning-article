@@ -17,7 +17,8 @@ class MetricsHelper:
         self.file_count = file_count
         self.datetime = dt.now().strftime("%d/%m/%Y %H:%M:%S")
         self.steps = []
-        self.filename = None
+        self.filename = ''
+        self.file_bytes = 0
         self.step = -1
         self.con = duckdb.connect()
         self._id = hash(self.datetime)
@@ -26,6 +27,7 @@ class MetricsHelper:
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
 
     def set_file(self, filepath: str, step: int):
+        logger.info(f"Setting file {filepath} for step {step}")
         self.filename = os.path.basename(filepath)
         self.file_bytes = os.path.getsize(filepath) / (1024 * 1024)  # to MB
         self.row_count = self.count(filepath)

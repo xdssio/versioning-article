@@ -1,6 +1,7 @@
+import time
+
 from src.utils.git import GitHelper
 from src.utils import generate_mock_data
-import pyxet
 import pytest
 
 from tests.utils import s3_file_count
@@ -28,10 +29,10 @@ def test_lfs_upload():
 
 
 def test_xethub_upload():
-    fs = pyxet.XetFS()
-    if filename in fs.ls("xet://xdssio/versioning-xethub/main", detail=False):
-        with fs.transaction:
-            fs.rm(f"xet://xdssio/versioning-xethub/main/0.parquet")
+    if filename in helper.xet_ls():
+        helper.remove(filename)
+        time.sleep(5)
 
     helper.xethub_upload(filepath)
-    assert filename in fs.ls("xet://xdssio/versioning-xethub/main", detail=False)
+    time.sleep(10)
+    assert filename in helper.xet_ls()
