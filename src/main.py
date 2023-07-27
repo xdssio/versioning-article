@@ -7,8 +7,13 @@ import time
 import duckdb
 from tqdm import tqdm
 from glob import glob
+from loguru import logger
+from src.utils.metrics import MetricsHelper
+from src.utils.git import GitHelper
 
-from src.utils import MetricsHelper
+
+logger.add("logs/{time}.log")
+logger.debug("That's it, beautiful and simple logging!")
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
@@ -17,12 +22,6 @@ MERGED_FILENAME = 'merged.parquet'
 
 sleep_time = 0.5
 
-
-def upload_dvc(helper: MetricsHelper):
-    start_time = time.time()
-    """Do stuff"""
-    time.sleep(sleep_time)
-    helper.track(time.time() - start_time, tech='dvc', merged=False)
 
 
 def upload_lfs(helper):
