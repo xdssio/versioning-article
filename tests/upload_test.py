@@ -30,7 +30,7 @@ def test_lfs_upload():
 
 def test_xethub_upload():
     if filename in helper.xet_ls():
-        helper.remove(filename)
+        helper.xet_remove(filename)
         time.sleep(5)
 
     helper.xethub_upload(filepath)
