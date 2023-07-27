@@ -109,11 +109,13 @@ git push
 ```
 scalene -m pytest tests
 
-python src/generate.py --dir=mock --count=2 --rows=1000
-scalene src/main.py --dir=mock # for quick testing
+python src/generate.py --dir=mock --count=10 --rows=1000000
+python src/main.py --dir=mock # for quick testing
+scalene src/main.py --dir=mock # with memory profiling
+
 # or
 export PYTHONPATH="$(pwd):$PYTHONPATH" 
-python src/main.py --dir=mock
+python src/main.py --dir=mock --rows=10000
 
 ```
 

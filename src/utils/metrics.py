@@ -42,10 +42,16 @@ class MetricsHelper:
         return sleep_bytes_sent, sleep_bytes_recv
 
     def record(self, func: typing.Callable, tech: str, merged: bool = True, *args, **kwargs, ):
+        error = ''
         start_func_time = time.time()
         net_io_before = psutil.net_io_counters()
         logger.debug(f"Running {func.__name__} with {args} and {kwargs}")
-        func(*args, **kwargs)
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            error = str(e)
+            logger.error(f"Error running {func.__name__} with {args} and {kwargs} - {e}")
+
         net_io_after = psutil.net_io_counters()
         func_time = time.time() - start_func_time
         bytes_sent = net_io_after.bytes_sent - net_io_before.bytes_sent
@@ -62,7 +68,8 @@ class MetricsHelper:
                   'bytes_sent': bytes_sent,
                   'bytes_recv': bytes_recv,
                   'bytes_sent_1s': sleep_bytes_sent,
-                  'bytes_recv_1s': sleep_bytes_recv
+                  'bytes_recv_1s': sleep_bytes_recv,
+                  'error': error,
                   }
         logger.debug(json.dumps(result, indent=4))
         self.steps.append(result)
