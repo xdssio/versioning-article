@@ -163,5 +163,5 @@ dvc/
 xethub/
 lfs/
 data/
-mock/
+*mock/
 *.pyc

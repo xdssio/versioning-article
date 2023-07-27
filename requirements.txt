@@ -1,5 +1,8 @@
+boto3==1.28.12
 duckdb==0.8.1
 dvc==3.1.0
+dvc-s3==2.23.0
+loguru==0.7.0
 pyxet==0.0.8
 tqdm==4.65.0
 scalene==1.5.22.2

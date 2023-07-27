@@ -52,14 +52,24 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 5. Create a *.lfsconfig* file with:
    ```yaml
     [lfs]
-    url = https://<your-bucket-name>.s3.amazonaws.com/lfs
+    url = https://<your-bucket-name>.s3.amazonaws.com
     ``` 
-7. `git lfs track .`
+7. `git lfs track *.parquet
+8. Setup git  config:
+   ```yaml
+   git config lfs.storage.type "s3"
+   git config lfs.storage.s3.bucket "versioning-article"
+   git config lfs.storage.s3.region "us-west-2"  # your S3 bucket region
+   git config lfs.storage.s3.accesskeyid "YOUR_AWS_ACCESS_KEY_ID"  
+   git config lfs.storage.s3.secretaccesskey "YOUR_AWS_SECRET_ACCESS_KEY"
+
+
+8. git lfs track --external --local --set-upstream s3://bucket_name` ??
 
 #### DVC setup
 1. `git clone https://github.com/${USER}/versioning-dvc dvc`
 2. [Install CLI](https://dvc.org/doc/install)
-3. `pip install dvc`
+3. `pip install dvc dvc-s3`
 4. setup remote:
     ```bash
    cd dvc
