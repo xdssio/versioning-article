@@ -1,4 +1,4 @@
-from src.utils import MetricsHelper
+from src.utils.metrics import MetricsHelper
 import requests
 import sys
 
@@ -23,5 +23,5 @@ def test_record():
     assert results['step'] == 0
     assert results['bytes_sent']
     assert results['bytes_recv'] > 6e5
-    assert results['sleep_bytes_sent']
-    assert results['sleep_bytes_recv'] < results['bytes_recv']
+    assert results['bytes_sent_1s']
+    assert results['bytes_recv_1s'] < results['bytes_recv']

@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from src.utils import merge, generate_mock_data
+from src.utils import merge_files, generate_mock_data
 from glob import glob
 
 
@@ -15,7 +15,7 @@ def test_merge():
     generate_mock_data('mock', 5, 10000)
     files = glob('mock/*.parquet')
     for file in files:
-        merge('merged.parquet', file)
+        merge_files('merged.parquet', file)
     os.remove('merged.parquet')
 
 
