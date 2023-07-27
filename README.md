@@ -32,7 +32,7 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/${USER}/versioning-xethub xethub`
+1. `git xet clone https://xethub.com/xdssio/versioning-xethub-v2.git xethub` # use your own repository
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
       export XET_USER_NAME=<user-name>
@@ -45,7 +45,7 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 #### LFS setup
 
-1. `git clone https://github.com/${USER}/versioning-lfs lfs`
+1. `git clone https://github.com/${USER}/versioning-lfs lfs` 
 2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
 3. `cd lfs`
 4. `git lfs install`
@@ -92,10 +92,24 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ## Run
 
-`scalene src/main.py --dir=data`
+```bash
+scalene src/main.py --dir=data
+# recommended:
+git add profile.*
+git add output.csv
+git commit -m "upload results"
+git push
+```
+
 
 ## Tests
 
-`scalene -m pytest tests`
+```
+scalene -m pytest tests
 
-`scalene src/main.py --dir=mock` # for quick testing  
+python src/generate.py --dir=mock --count=5 --rows=1000
+scalene src/main.py --dir=mock` # for quick testing
+
+```
+
+`  
