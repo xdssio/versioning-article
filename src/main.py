@@ -14,12 +14,6 @@ helper = GitHelper()
 
 
 def benchmark(data: str, output_file: str = 'output.csv'):
-
-    data = 'mock';
-    step = 0;
-    filepath = 'mock/0.parquet'
-    output_file = 'output.csv'
-
     files = list(glob(f"{data}/*.parquet"))
     logger.info(f"benchmark- {data} : {len(files)} files")
     merged_filepath = path.join(data, 'merged.parquet')
