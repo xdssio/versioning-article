@@ -8,7 +8,7 @@ import duckdb
 import os.path as path
 
 
-class GitHelper:
+class Helper:
     def __init__(self):
         origins = subprocess.run('git remote -v', shell=True, cwd='xethub', stdout=subprocess.PIPE).stdout.decode()
         origin = origins.split('\n')[0].split('\t')[1].split(' ')[0].split('/')
@@ -90,6 +90,6 @@ class GitHelper:
     def xet_ls(self):
         return self.fs.ls(self.xet_repo, detail=False)
 
-    def remove(self, filename: str):
+    def xet_remove(self, filename: str):
         with self.fs.transaction:
             self.fs.rm(f"{self.xet_repo}/{filename}")

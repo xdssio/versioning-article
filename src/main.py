@@ -37,8 +37,11 @@ def benchmark(data: str, output_file: str = 'output.csv'):
         metrics.record(helper.dvc_upload, tech='dvc', merged=True, filepath=merged_filepath)
         metrics.record(helper.lfs_upload, tech='lfs', merged=False, filepath=filepath)
         metrics.record(helper.lfs_upload, tech='lfs', merged=True, filepath=merged_filepath)
+
         metrics.record(helper.xethub_upload, tech='xethub', merged=False, filepath=filepath)
         metrics.record(helper.xethub_upload, tech='xethub', merged=True, filepath=merged_filepath)
+
+        helper.xet_remove(merged_filepath)
 
     metrics.export(output_file)
 
