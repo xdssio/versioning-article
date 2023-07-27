@@ -7,6 +7,7 @@ import os
 import time
 from loguru import logger
 import json
+import duckdb
 
 
 class MetricsHelper:
@@ -18,10 +19,16 @@ class MetricsHelper:
         self.steps = []
         self.filename = None
         self.step = -1
+        self.con = duckdb.connect()
+        self._id = hash(self.datetime)
+
+    def count(self, filepath):
+        return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
 
     def set_file(self, filepath: str, step: int):
         self.filename = os.path.basename(filepath)
         self.file_bytes = os.path.getsize(filepath) / (1024 * 1024)  # to MB
+        self.row_count = self.count(filepath)
         self.step = step
 
     def bytes_in_rest(self, duration: float):
@@ -49,6 +56,7 @@ class MetricsHelper:
                   'filename': self.filename,
                   'step': self.step,
                   'file_bytes': self.file_bytes,
+                  'row_count': self.row_count,
                   'bytes_sent': bytes_sent,
                   'bytes_recv': bytes_recv,
                   'bytes_sent_1s': sleep_bytes_sent,
@@ -62,6 +70,7 @@ class MetricsHelper:
         df['data_dir'] = self.data_dir
         df['file_count'] = self.file_count
         df['datetime'] = self.datetime
+        df['id'] = self._id
         return df
 
     def export(self, output: str = 'output.csv', verbose: bool = False):
