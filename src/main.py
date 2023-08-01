@@ -1,5 +1,5 @@
 import argparse
-import os
+import contextlib
 import os.path as path
 import time
 import cProfile
@@ -67,7 +67,9 @@ if __name__ == '__main__':
     profiler.dump_stats('output/profile.prof')
 
     if args.upload:
-        helper.output_upload(f"Experiment {metrics.datetime} - data: {args.dir}")
+        with contextlib.suppress(Exception):  # Not to break the flow
+            helper.output_upload(f"Experiment {metrics.datetime} - data: {args.dir}")
     print(f"######### Total time: {time.time() - start} #########")
     if args.show:
-        print(helper.run("snakeviz output/profile.prof"))
+        with contextlib.suppress(Exception):  # Not to break the flow
+            print(helper.run("snakeviz output/profile.prof"))
