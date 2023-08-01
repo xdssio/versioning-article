@@ -12,9 +12,9 @@ import duckdb
 
 class MetricsHelper:
 
-    def __init__(self, data_dir: str, file_count: int):
-        self.data_dir = data_dir
-        self.file_count = file_count
+    def __init__(self):
+        self.data_dir = ''
+        self.file_count = -1
         self.datetime = dt.now().strftime("%d/%m/%Y %H:%M:%S")
         self.steps = []
         self.filename = ''
@@ -22,26 +22,37 @@ class MetricsHelper:
         self.step = -1
         self.con = duckdb.connect()
         self._id = hash(self.datetime)
+        self.row_count = -1
+        self.output = 'output.csv'
 
     def count(self, filepath):
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
 
+    @staticmethod
+    def to_mb(bytes: int):
+        return bytes / (1024 * 1024)
+
     def set_file(self, filepath: str, step: int):
         logger.info(f"Setting file {filepath} for step {step}")
         self.filename = os.path.basename(filepath)
-        self.file_bytes = os.path.getsize(filepath) / (1024 * 1024)  # to MB
+        self.file_bytes = self.to_mb(os.path.getsize(filepath))
         self.row_count = self.count(filepath)
         self.step = step
+
+    def _to_send_recv(self, net_io_before, net_io_after):
+        sleep_bytes_sent = net_io_after.bytes_sent - net_io_before.bytes_sent
+        sleep_bytes_recv = net_io_after.bytes_recv - net_io_before.bytes_recv
+        return self.to_mb(sleep_bytes_sent), self.to_mb(sleep_bytes_recv)
 
     def bytes_in_rest(self, duration: float):
         net_io_before_sleep = psutil.net_io_counters()
         time.sleep(duration)
         net_io_after_sleep = psutil.net_io_counters()
-        sleep_bytes_sent = net_io_after_sleep.bytes_sent - net_io_before_sleep.bytes_sent
-        sleep_bytes_recv = net_io_after_sleep.bytes_recv - net_io_before_sleep.bytes_recv
-        return sleep_bytes_sent, sleep_bytes_recv
+        return self._to_send_recv(net_io_before_sleep, net_io_after_sleep)
 
     def record(self, func: typing.Callable, tech: str, merged: bool = True, *args, **kwargs, ):
+        if self.step == -1:
+            raise RuntimeError("No file set")
         error = ''
         start_func_time = time.time()
         net_io_before = psutil.net_io_counters()
@@ -54,8 +65,7 @@ class MetricsHelper:
 
         net_io_after = psutil.net_io_counters()
         func_time = time.time() - start_func_time
-        bytes_sent = net_io_after.bytes_sent - net_io_before.bytes_sent
-        bytes_recv = net_io_after.bytes_recv - net_io_before.bytes_recv
+        bytes_sent, bytes_recv = self._to_send_recv(net_io_before, net_io_after)
         sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(1)
         result = {'time': func_time,
                   'function': func.__name__,
@@ -63,18 +73,18 @@ class MetricsHelper:
                   'merged': merged,
                   'filename': self.filename,
                   'step': self.step,
-                  'file_bytes': self.file_bytes,
+                  'file_mb': self.file_bytes,
                   'row_count': self.row_count,
-                  'bytes_sent': bytes_sent,
-                  'bytes_recv': bytes_recv,
-                  'bytes_sent_1s': sleep_bytes_sent,
-                  'bytes_recv_1s': sleep_bytes_recv,
+                  'sent_mb': bytes_sent,
+                  'recv_mb': bytes_recv,
+                  'sent_mb_1s': sleep_bytes_sent,
+                  'recv_mb_1s': sleep_bytes_recv,
                   'error': error,
                   }
         logger.debug(json.dumps(result, indent=4))
         self.steps.append(result)
 
-    def _get_output(self):
+    def _get_stats(self):
         df = pd.DataFrame(self.steps)
         df['data_dir'] = self.data_dir
         df['file_count'] = self.file_count
@@ -82,9 +92,9 @@ class MetricsHelper:
         df['id'] = self._id
         return df
 
-    def export(self, output: str = 'output.csv', verbose: bool = False):
-        pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
-        df = self._get_output()
+    def export(self, verbose: bool = False):
+        pathlib.Path(self.output).parent.mkdir(parents=True, exist_ok=True)
+        df = self._get_stats()
         if verbose:
             logger.info(df.head())
-        df.to_csv(output, index=False)
+        df.to_csv(self.output, index=False)
