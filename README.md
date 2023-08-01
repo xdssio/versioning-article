@@ -17,7 +17,7 @@ We clone them locally and setup the remotes:
 Setup your git user name and python environment:
 
 ```bash
-USER=$(git config --global user.name) # or manually set your GitHub/XetHub user name
+GITUSER=$(git config --global user.name) # or manually set your GitHub/XetHub user name
 
 python -m venv .venv \
 && source .venv/bin/activate \
@@ -32,7 +32,7 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/xdssio/versioning-xethub-v2.git xethub` # use your own repository
+1. `git xet clone https://xethub.com/$GITUSER/versioning-xethub.git xethub` # use your own repository
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
       export XET_USER_NAME=<user-name>
@@ -43,43 +43,9 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 4. (Optional) [Install CLI](https://xethub.com/assets/docs/getting-started/installation)
 
-#### LFS setup
-
-1. `git clone https://github.com/${USER}/versioning-lfs lfs` 
-2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
-3. `cd lfs`
-4. `git lfs install`
-5. `git lfs track '*.parquet'`
-6. Create a *.lfsconfig* file a url to our local server:
-   ```bash
-   echo "[lfs]
-    url = http://localhost:9999/git-lfs/blog.dermah.com.git" > .lfsconfig
-   ```
-
-7. Edit the file in 'lfs-server/config/default.json:
-    ```json
-    ...
-    "store": {
-     "type": "s3",
-     "options": {
-         "bucket": "<your bucket>",
-         "region": "<your region>"
-     }
-    ```
-8. Run local
-   lfs-server
-   ```
-   cd lfs-server
-   npx node-git-lfs
-   # if you get problems try:
-   npx "github:Dermah/node-git-lfs#4b79bee4"
-   ```
-
-* Thanks to [@Sputnik/Dermah](https://blog.dermah.com/2020/05/26/how-to-be-stingy-git-lfs-on-your-own-s3-bucket/)
-
 #### DVC setup
 
-1. `git clone https://github.com/${USER}/versioning-dvc dvc`
+1. `git clone https://github.com/$GITUSER/versioning-dvc dvc`
 2. [Install CLI](https://dvc.org/doc/install)
 3. `pip install dvc dvc-s3`
 4. setup remote:
@@ -89,6 +55,60 @@ python src/generate.py --dir=mock --count=5 --rows=1000
    dvc remote add -d versioning-article s3://<your-bucket-name>/dvc
    dvc remote modify versioning-article region us-west-2
     ```
+
+#### LFS - natural setup
+
+This uses the natural LFS setup, where the data is stored with a default git LFS server and storage.
+> **Warning:** THIS WILL COST YOU MONEY!
+
+1. `git clone https://github.com/$GITUSER/versioning-lfs-github lfs-github`
+2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
+3. `cd lfs-github`
+4. `git lfs install`
+5. `git lfs track '*.parquet'`
+
+#### LFS setup + S3
+
+1. `git clone https://github.com/$GITUSER/versioning-lfs lfs-s3`
+2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
+3. `cd lfs-s3`
+4. `git lfs install`
+5. `git lfs track '*.parquet'`
+6. `cd ..` # so we can setup the server
+7. LFS server setup - [Reference](https://github.com/jasonwhite/rudolfs)
+    * Generating a random key is easy: `openssl rand -hex 32`
+        * Keep this secret and save it in a password manager so you don't lose it. We will pass this to the server
+          below.
+    * Create a *lfs-server/.env* file with the following contents:
+        ```bash
+        AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXXXXXXXX
+        AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        AWS_DEFAULT_REGION=us-west-2
+        LFS_ENCRYPTION_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # the result of the openssl command above
+        LFS_S3_BUCKET=my-bucket
+        LFS_MAX_CACHE_SIZE=10GB
+        ```
+    * Improve performance (optional)
+       ```bash
+       # Increase the number of worker threads
+       git config --global lfs.concurrenttransfers 64
+       # Use a global LFS cache to make re-cloning faster
+       git config --global lfs.storage ~/.cache/lfs      
+       ```
+8. Update the *lfs-s3/.lfsconfig* file:
+   ```bash
+   [lfs]
+   url = "http://http://0.0.0.0:8081/api/my-org/my-project"
+              ─────────┬──────── ──┬─ ─┬─ ───┬── ─────┬────
+                       │           │   │     │        └ Replace with your project's name
+                       │           │   │     └ Replace with your organization name   
+                       │           │   └ Required to be "api"
+                       │           └ The port your server started with
+                       └ The host name of your server
+   ```
+8. Run local
+   ```bash
+    cd lfs-server && docker-compose up
 
 ## Run
 
@@ -102,7 +122,6 @@ git add output.csv profile.prof
 git commit -m "upload results"
 git push
 ```
-
 
 ## Tests
 
@@ -121,8 +140,19 @@ python src/main.py --dir=mock --rows=10000
 
 ## Analyse results
 
+Visualize the results with snakeviz:
+
 ```bash
 snakeviz profile.prof
+```
+
+Use jupyter notebook to analyse the results:
+
+```bash
+pip install jupyter
+jupyter notebook
+
+# open the notebook in the browser
 ```
 
 `  
