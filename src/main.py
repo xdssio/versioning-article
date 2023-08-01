@@ -49,19 +49,14 @@ if __name__ == '__main__':
     p.add_argument(
         '--dir', default='mock',
         help='The directory in which to download data and perform searches.')
-    p.add_argument(
-        '--output', default='output.csv',
-        help='The the location for the csv output file.')
-
     args = p.parse_args()
     metrics.data_dir = args.dir
     metrics.file_count = len(glob(f"{args.dir}/*.parquet"))
-    metrics.output_file = args.output
     profiler = cProfile.Profile()
     start = time.time()
     profiler.run(f"benchmark('{args.dir}')")
-    profiler.dump_stats('profile.prof')
-    helper.output_upload()
+    profiler.dump_stats('output/profile.prof')
+    helper.output_upload(f"experiment {metrics._id} on data {args.dir}")
 
     print(f"######### Total time: {time.time() - start} #########")
-    print()
+    helper.run("snakeviz output/profile.prof")

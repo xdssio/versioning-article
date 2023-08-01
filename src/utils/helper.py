@@ -34,15 +34,18 @@ class Helper:
                   """
         return self.run(command, Helper.DVC)
 
-    def git_push(self, repo):
+    def git_push(self, repo: str = ''):
         command = """
                   git push
                   """
         self.run(command, repo)
 
-    def run(self, command, repo):
+    def run(self, command: str, repo: str = ''):
         logger.debug(command)
-        logger.debug(subprocess.run(command, capture_output=True, shell=True, cwd=repo))
+        args = {"shell": True, "capture_output": True}
+        if repo:
+            args["cwd"] = repo
+        logger.debug(subprocess.run(command, **args))
 
     def dvc_add_commit(self, filename: str):
         command = f"""
@@ -58,11 +61,11 @@ class Helper:
         self.dvc_add_commit(filename)
         self.dvc_push()
 
-    def git_add_commit(self, filename: str, repo: str, commit:str=""):
+    def git_add_commit(self, filename: str, repo: str = '', commit: str = ""):
         commit = commit or filename
         command = f"""                                
                     git add {filename}
-                    git commit -m "commit {filename}"
+                    git commit -m "commit {commit}"
                     """
         self.run(command, repo)
 
@@ -84,9 +87,10 @@ class Helper:
                 self.copy_file(filepath, f"{Helper.XETHUB}/{filename}")
             self._git_upload(filepath, Helper.XETHUB)
 
-    def output_upload(self):
-        self.git_add_commit(".", "")
-        self.git_push(None)
+    def output_upload(self, commit: str):
+        self.git_add_commit('output.csv', commit=commit + ' output.csv')
+        self.git_add_commit('profile.prof', commit=commit + ' profile.prof')
+        self.git_push()
 
     def merge_files(self, new_filepath: str, merged_filepath: str):
         if not path.exists(merged_filepath):
