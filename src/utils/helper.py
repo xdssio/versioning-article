@@ -21,7 +21,7 @@ class Helper:
         self.fs = pyxet.XetFS()
         self.xet_repo = f"xet://{origin[-2]}/{origin[-1].replace('.git', '')}/main"
 
-    def dve_upload_new(self, filepath: str):
+    def dvc_upload_new(self, filepath: str):
         return self._dvc_upload(filepath)
 
     def dvc_upload_merged(self, filepath: str):

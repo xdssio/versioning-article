@@ -28,14 +28,17 @@ class MetricsHelper:
     def count(self, filepath):
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
 
+    def get_file_size(self, filepath):
+        return self.to_mb(os.path.getsize(filepath))
+
     @staticmethod
     def to_mb(bytes: int):
         return bytes / (1024 * 1024)
 
-    def set_file(self, filepath: str, step: int):
+    def set_file(self, filepath: str, step: int, file_bytes:int):
         logger.info(f"Setting file {filepath} for step {step}")
         self.filename = os.path.basename(filepath)
-        self.file_bytes = self.to_mb(os.path.getsize(filepath))
+        self.file_bytes = file_bytes
         self.row_count = self.count(filepath)
         self.step = step
 
