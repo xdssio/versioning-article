@@ -23,7 +23,7 @@ class MetricsHelper:
         self.con = duckdb.connect()
         self._id = hash(self.datetime)
         self.row_count = -1
-        self.output = 'output.csv'
+        self.output = 'output/results.csv'
 
     def count(self, filepath):
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
