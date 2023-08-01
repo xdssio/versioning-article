@@ -13,7 +13,7 @@ def test_record():
     helper = MetricsHelper('mock', 1)
     helper.set_file('file')
     helper.record(func=read_image, tech='tech', merged=False)
-    df = helper._get_output()
+    df = helper._get_stats()
     results = df.to_dict(orient='records')[0]
     assert results['data_dir'] == 'mock'
     assert results['file_count'] == 1

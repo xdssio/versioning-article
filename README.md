@@ -93,12 +93,12 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 ## Run
 
 ```bash
+export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/download.py --dir=data --download=all --limit=40
 
-scalene src/main.py --dir=data
+python src/main.py --dir=data
 # recommended:
-git add profile.*
-git add output.csv
+git add output.csv profile.prof
 git commit -m "upload results"
 git push
 ```
@@ -107,16 +107,22 @@ git push
 ## Tests
 
 ```
-scalene -m pytest tests
 
-python src/generate.py --dir=mock --count=10 --rows=1000000
+pytest tests
+
+python src/generate.py --dir=mock --count=10 --rows=10
 python src/main.py --dir=mock # for quick testing
-scalene src/main.py --dir=mock # with memory profiling
 
 # or
 export PYTHONPATH="$(pwd):$PYTHONPATH" 
 python src/main.py --dir=mock --rows=10000
 
+```
+
+## Analyse results
+
+```bash
+snakeviz profile.prof
 ```
 
 `  
