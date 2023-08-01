@@ -25,24 +25,29 @@ def benchmark(data: str):
         file_count -= 1
 
     for step, filepath in tqdm(enumerate(files)):
-        metrics.set_file(filepath=filepath, step=step + 1, file_bytes=metrics.get_file_size(filepath))
+
+        metrics.set_file(filepath=filepath, step=step, file_bytes=metrics.get_file_size(filepath))
         # Create merged file
         metrics.record(helper.merge_files, tech='m1', merged=True, new_filepath=filepath,
                        merged_filepath=merged_filepath)
         # copy locally
         metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='dvc')
         metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='dvc')
-        metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='lfs')
-        metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs')
+        metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='lfs-s3')
+        metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs-s3')
+        metrics.record(helper.copy_file, tech='m1', merged=False, filepath=filepath, repo='lfs-github')
+        metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs-github')
 
-        metrics.record(helper.xethub_upload_new, tech='xethub', merged=False, filepath=filepath)
         metrics.record(helper.dvc_upload_new, tech='dvc', merged=False, filepath=filepath)
-        metrics.record(helper.lfs_upload_new, tech='lfs', merged=False, filepath=filepath)
+        metrics.record(helper.lfs_s3_upload_new, tech='lfs-s3', merged=False, filepath=filepath)
+        metrics.record(helper.lfs_github_upload_new, tech='lfs-github', merged=False, filepath=filepath)
+        metrics.record(helper.xethub_upload_new, tech='xethub', merged=False, filepath=filepath)
 
-        metrics.set_file(filepath=filepath, step=step + 1, file_bytes=metrics.get_file_size(merged_filepath))
-        metrics.record(helper.xethub_upload_merged, tech='xethub', merged=True, filepath=merged_filepath)
+        metrics.set_file(filepath=filepath, step=step, file_bytes=metrics.get_file_size(merged_filepath))
         metrics.record(helper.dvc_upload_merged, tech='dvc', merged=True, filepath=merged_filepath)
-        metrics.record(helper.lfs_upload_merged, tech='lfs', merged=True, filepath=merged_filepath)
+        metrics.record(helper.lfs_s3_upload_merged, tech='lfs-s3', merged=True, filepath=merged_filepath)
+        metrics.record(helper.lfs_github_upload_merged, tech='lfs-github', merged=True, filepath=merged_filepath)
+        metrics.record(helper.xethub_upload_merged, tech='xethub', merged=True, filepath=merged_filepath)
         metrics.export()  # TODO write just the last row
 
 

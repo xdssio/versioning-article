@@ -10,7 +10,8 @@ import os.path as path
 
 class Helper:
     DVC = "dvc"
-    LFS = "lfs"
+    LFS_S3 = "lfs-s3"
+    LFS_GITHUB = "lfs-github"
     XETHUB = "xethub"
 
     def __init__(self):
@@ -27,11 +28,17 @@ class Helper:
     def dvc_upload_merged(self, filepath: str):
         return self._dvc_upload(filepath)
 
-    def lfs_upload_new(self, filepath: str):
-        return self._lfs_upload(filepath)
+    def lfs_s3_upload_new(self, filepath: str):
+        return self._lfs_upload(filepath, Helper.LFS_S3)
 
-    def lfs_upload_merged(self, filepath: str):
-        return self._lfs_upload(filepath)
+    def lfs_s3_upload_merged(self, filepath: str):
+        return self._lfs_upload(filepath, Helper.LFS_S3)
+
+    def lfs_github_upload_new(self, filepath: str):
+        return self._lfs_upload(filepath, Helper.LFS_GITHUB)
+
+    def lfs_github_upload_merged(self, filepath: str):
+        return self._lfs_upload(filepath, Helper.LFS_GITHUB)
 
     def xethub_upload_new(self, filepath: str):
         return self._xethub_upload(filepath)
@@ -94,8 +101,8 @@ class Helper:
         self._git_add_commit(filename, repo)
         return self._git_push(repo)
 
-    def _lfs_upload(self, filepath: str):
-        return self._git_upload(filepath, Helper.LFS)
+    def _lfs_upload(self, filepath: str, lfs_dir: str):
+        return self._git_upload(filepath, lfs_dir)
 
     def _xethub_upload(self, filepath: str, pyxet_api: bool = True):
         filename = os.path.basename(filepath)
