@@ -120,7 +120,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+lfs-server/.env
 .venv
 env/
 venv/
@@ -161,9 +161,10 @@ cython_debug/
 .vscode/
 dvc/
 xethub/
-lfs/
+lfs-s3/
+lfs-github/
 data/
 mock/
-.env
+lfs-server/.env
 *.pyc
 tests/mock/
