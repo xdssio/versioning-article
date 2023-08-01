@@ -88,6 +88,7 @@ This uses the natural LFS setup, where the data is stored with a default git LFS
         LFS_S3_BUCKET=my-bucket
         LFS_MAX_CACHE_SIZE=10GB
         ```
+        
     * Improve performance (optional)
        ```bash
        # Increase the number of worker threads
