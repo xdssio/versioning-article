@@ -164,5 +164,6 @@ xethub/
 lfs/
 data/
 mock/
+.env
 *.pyc
 tests/mock/
