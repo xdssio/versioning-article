@@ -18,13 +18,13 @@ def before_tests():
 
 def test_dvc_upload():
     start_count = s3_file_count('dvc')
-    helper.dvc_upload(filepath)
+    helper._dvc_upload(filepath)
     assert s3_file_count('dvc') == start_count + 1
 
 
 def test_lfs_upload():
     start_count = s3_file_count('git-lfs')
-    helper.lfs_upload(filepath)
+    helper._lfs_upload(filepath)
     assert s3_file_count('git-lfs') == start_count + 1
 
 
@@ -33,6 +33,6 @@ def test_xethub_upload():
         helper.xet_remove(filename)
         time.sleep(5)
 
-    helper.xethub_upload(filepath)
+    helper._xethub_upload(filepath)
     time.sleep(10)
     assert filename in helper.xet_ls()

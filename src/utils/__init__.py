@@ -24,7 +24,7 @@ def generate_parquet(num_rows: int = 10):
             'city': 'New York'
         })
     df = pd.DataFrame(rows)
-    df['date'] = pd.date_range(start='2023-01-01', periods=num_rows, freq='H')
+    # df['date'] = pd.date_range(start='1900-01-01', periods=num_rows, freq='H')
     return df
 
 

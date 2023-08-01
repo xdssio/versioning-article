@@ -21,6 +21,24 @@ class Helper:
         self.fs = pyxet.XetFS()
         self.xet_repo = f"xet://{origin[-2]}/{origin[-1].replace('.git', '')}/main"
 
+    def dve_upload_new(self, filepath: str):
+        return self._dvc_upload(filepath)
+
+    def dvc_upload_merged(self, filepath: str):
+        return self._dvc_upload(filepath)
+
+    def lfs_upload_new(self, filepath: str):
+        return self._lfs_upload(filepath)
+
+    def lfs_upload_merged(self, filepath: str):
+        return self._lfs_upload(filepath)
+
+    def xethub_upload_new(self, filepath: str):
+        return self._xethub_upload(filepath)
+
+    def xethub_upload_merged(self, filepath: str):
+        return self._xethub_upload(filepath)
+
     @staticmethod
     def copy_file(filepath: str, repo: str):
         filename = os.path.basename(filepath)
@@ -28,56 +46,58 @@ class Helper:
         shutil.copyfile(filepath, targetpath)
         return filename
 
-    def dvc_push(self):
+    def _dvc_push(self):
         command = """
                   dvc push
                   """
         return self.run(command, Helper.DVC)
 
-    def git_push(self, repo: str = ''):
+    def _git_push(self, repo: str = ''):
         command = """
                   git push
                   """
-        self.run(command, repo)
+        return self.run(command, repo)
 
     def run(self, command: str, repo: str = ''):
         logger.debug(command)
         args = {"shell": True, "capture_output": True}
         if repo:
             args["cwd"] = repo
-        logger.debug(subprocess.run(command, **args))
+        out = subprocess.run(command, **args)
+        logger.debug(out)
+        return out
 
-    def dvc_add_commit(self, filename: str):
+    def _dvc_add_commit(self, filename: str):
         command = f"""
                         dvc add {filename}
                         git add {filename}.dvc
                         git commit -m "commit {filename}"
                         git push                
                         """
-        self.run(command, Helper.DVC)
+        return self.run(command, Helper.DVC)
 
-    def dvc_upload(self, filepath: str):
+    def _dvc_upload(self, filepath: str):
         filename = os.path.basename(filepath)
-        self.dvc_add_commit(filename)
-        self.dvc_push()
+        self._dvc_add_commit(filename)
+        self._dvc_push()
 
-    def git_add_commit(self, filename: str, repo: str = '', commit: str = ""):
+    def _git_add_commit(self, filename: str, repo: str = '', commit: str = ""):
         commit = commit or filename
         command = f"""                                
                     git add {filename}
                     git commit -m "commit {commit}"
                     """
-        self.run(command, repo)
+        return self.run(command, repo)
 
     def _git_upload(self, filepath: str, repo: str):
         filename = os.path.basename(filepath)
-        self.git_add_commit(filename, repo)
-        self.git_push(repo)
+        self._git_add_commit(filename, repo)
+        return self._git_push(repo)
 
-    def lfs_upload(self, filepath: str):
-        self._git_upload(filepath, Helper.LFS)
+    def _lfs_upload(self, filepath: str):
+        return self._git_upload(filepath, Helper.LFS)
 
-    def xethub_upload(self, filepath: str, pyxet_api: bool = True):
+    def _xethub_upload(self, filepath: str, pyxet_api: bool = True):
         filename = os.path.basename(filepath)
         if pyxet_api:
             with self.fs.transaction:
@@ -86,11 +106,12 @@ class Helper:
             if filename not in set(pathlib.Path(Helper.XETHUB).glob("*")):
                 self.copy_file(filepath, f"{Helper.XETHUB}/{filename}")
             self._git_upload(filepath, Helper.XETHUB)
+        return pyxet_api
+
 
     def output_upload(self, commit: str):
-        self.git_add_commit('output.csv', commit=commit + ' output.csv')
-        self.git_add_commit('profile.prof', commit=commit + ' profile.prof')
-        self.git_push()
+        self._git_add_commit('output/*', commit=commit)
+        self._git_push()
 
     def merge_files(self, new_filepath: str, merged_filepath: str):
         if not path.exists(merged_filepath):
