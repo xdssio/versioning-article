@@ -111,7 +111,7 @@ git push
 pytest tests
 
 python src/generate.py --dir=mock --count=10 --rows=10
-python src/main.py --dir=mock # for quick testing
+python src/main.py --dir=mock --show # for quick testing
 
 # or
 export PYTHONPATH="$(pwd):$PYTHONPATH" 

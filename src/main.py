@@ -1,4 +1,5 @@
 import argparse
+import os
 import os.path as path
 import time
 import cProfile
@@ -24,7 +25,7 @@ def benchmark(data: str):
         file_count -= 1
 
     for step, filepath in tqdm(enumerate(files)):
-        metrics.set_file(filepath=filepath, step=step + 1)
+        metrics.set_file(filepath=filepath, step=step + 1, file_bytes=metrics.get_file_size(filepath))
         # Create merged file
         metrics.record(helper.merge_files, tech='m1', merged=True, new_filepath=filepath,
                        merged_filepath=merged_filepath)
@@ -35,9 +36,10 @@ def benchmark(data: str):
         metrics.record(helper.copy_file, tech='m1', merged=True, filepath=merged_filepath, repo='lfs')
 
         metrics.record(helper.xethub_upload_new, tech='xethub', merged=False, filepath=filepath)
-        metrics.record(helper.dve_upload_new, tech='dvc', merged=False, filepath=filepath)
+        metrics.record(helper.dvc_upload_new, tech='dvc', merged=False, filepath=filepath)
         metrics.record(helper.lfs_upload_new, tech='lfs', merged=False, filepath=filepath)
 
+        metrics.set_file(filepath=filepath, step=step + 1, file_bytes=metrics.get_file_size(merged_filepath))
         metrics.record(helper.xethub_upload_merged, tech='xethub', merged=True, filepath=merged_filepath)
         metrics.record(helper.dvc_upload_merged, tech='dvc', merged=True, filepath=merged_filepath)
         metrics.record(helper.lfs_upload_merged, tech='lfs', merged=True, filepath=merged_filepath)
@@ -46,15 +48,15 @@ def benchmark(data: str):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
-    p.add_argument(
-        '--dir', default='mock',
-        help='The directory in which to download data and perform searches.')
-    p.add_argument(
-        '--upload', default=False,
-        help='If True, upload to repo')
-    p.add_argument(
-        '--show', default=False,
-        help='If True, run snakeviz server')
+    p.add_argument('-d',
+                   '--dir', default='mock',
+                   help='The directory in which to download data and perform searches.')
+    p.add_argument('-u',
+                   '--upload', default=False, action='store_true',
+                   help='If True, upload to repo')
+    p.add_argument('-s',
+                   '--show', default=False, action='store_true',
+                   help='If True, run snakeviz server')
     args = p.parse_args()
     metrics.data_dir = args.dir
 
