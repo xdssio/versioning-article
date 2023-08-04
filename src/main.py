@@ -1,20 +1,23 @@
 import argparse
 import contextlib
+import os.path
 import os.path as path
 import time
 import cProfile
+import string
 from tqdm import tqdm
 from glob import glob
 from loguru import logger
-
+import pandas as pd
+from random import choice, randint
 from src.utils.metrics import MetricsHelper
 from src.utils.helper import Helper
 
 logger.add("logs/{time}.log")
 MERGED_FILE = 'merged.parquet'
-
+CSV_APPEND_STEPS = 100
 helper = Helper()
-metrics = MetricsHelper(merged_file=MERGED_FILE)
+metrics = MetricsHelper()
 
 
 def benchmark_append():
@@ -25,10 +28,66 @@ def benchmark_append():
         add line to each file
         push to cloud
     """
-    pass
+    filepath = 'blog/file.csv'
+    filename = path.basename(filepath)
+    metrics.set_file(filepath=filepath,
+                     step=0,
+                     file_bytes=metrics.get_file_size(filepath),
+                     is_merged=True)
+    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.DVC)
+    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.LFS_S3)
+    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.LFS_GITHUB)
+    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
+
+    original = pd.read_csv(filepath, nrows=650)
+    max_id = original['id'].max()
+    genders = list(set(original['gender']))
+    topics = list(set(original['topic']))
+    signs = list(set(original['sign']))
+    max_date = pd.to_datetime(original['date'].max())
+
+    def generate_text():
+        return ''.join([choice(string.ascii_letters) for _ in range(100)])
+
+    def generate_row():
+        global max_id
+        global max_date
+        new_row = {'id': max_id,
+                   'gender': choice(genders),
+                   'age': randint(0, 100),
+                   'topic': choice(topics),
+                   'signs': choice(signs),
+                   'date': max_date.strftime('%d,%B,%Y'),
+                   'text': generate_text()
+                   }
+        max_id += 1
+        max_date = max_date + pd.DateOffset(hours=1)
+        yield pd.DataFrame([new_row])
+
+    def append_row(row, filepath):
+        row.to_csv(filepath, mode='a', header=False, index=False)
+
+    for step in range(CSV_APPEND_STEPS):
+        metrics.set_file(filepath=filepath,
+                         step=step,
+                         file_bytes=metrics.get_file_size(filepath),
+                         is_merged=True)
+        if step > 0:
+            row = next(generate_row())
+            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+                appended_filepath = os.path.join(repo, filename)
+                append_row(row, appended_filepath)
+        metrics.record(helper.xethub_git_merged_upload, tech=Helper.XETHUB, filepath=filepath)
+        metrics.record(helper.dvc_merged_upload, tech=Helper.DVC, filepath=filepath)
+        metrics.record(helper.lfs_s3_merged_upload, tech=Helper.LFS, filepath=filepath)
+        metrics.record(helper.s3_merged_upload, tech=Helper.S3, filepath=filepath)
+        metrics.record(helper.lfs_git_merged_upload, tech=Helper.LFS, filepath=filepath)
+        metrics.record(helper.xethub_py_merged_upload, tech=Helper.XETHUB, filepath=appended_filepath)
+        metrics.record(helper.lakefs_merged_upload, tech=Helper.LAKEFS, filepath=appended_filepath)
+        metrics.export()  # TODO write just the last row
 
 
-def benchmark_taxi(data: str):
+def benchmark_files(data: str):
     files = sorted(glob(f"{data}/*.parquet"))
     logger.info(f"benchmark- {data} : {len(files)} files")
     merged_filepath = path.join(data, 'merged.parquet')
@@ -71,7 +130,7 @@ def benchmark_taxi(data: str):
         metrics.record(helper.s3_merged_upload, tech=Helper.S3, filepath=merged_filepath)
         metrics.record(helper.lakefs_merged_upload, tech=Helper.LAKEFS, filepath=merged_filepath)
 
-    metrics.export()  # TODO write just the last row
+        metrics.export()  # TODO write just the last row
 
 
 if __name__ == '__main__':
@@ -87,11 +146,13 @@ if __name__ == '__main__':
                    help='If True, run snakeviz server')
     args = p.parse_args()
     metrics.data_dir = args.dir
-
-    metrics.file_count = len(glob(f"{args.dir}/*.parquet"))
+    metrics.file_count = len(glob(f"{args.dir}/*"))
     profiler = cProfile.Profile()
     start = time.time()
-    profiler.run(f"benchmark('{args.dir}')")
+    command = f"benchmark_files('{args.dir}')"
+    if args.dir == 'blog':
+        command = f"benchmark_append('{args.dir}')"
+    profiler.run(command)
     profiler.dump_stats('output/profile.prof')
 
     if args.upload:
