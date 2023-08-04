@@ -1,30 +1,31 @@
 import os
-import pathlib
 import shutil
 import subprocess
 from loguru import logger
 import pyxet
 import duckdb
 import os.path as path
+import boto3
 
 
 class Helper:
+    M1 = "m1"
     DVC = "dvc"
+    LFS = "lfs"
+    S3 = "s3"
+    LAKEFS = "lakefs"
+    XETHUB = 'xethub'
     LFS_S3 = "lfs-s3"
     LFS_GITHUB = "lfs-github"
-    LFS = "lfs"
-    XETHUB_PY = "xethub_pyxet"
-    XETHUB_GIT = "xethub_git"
-    XETHUB = 'xethub'
-    LAKEFS = "lakefs"
-    S3 = "s3"
-    M1 = "m1"
+    XETHUB_PY = "xethub-py"
+    XETHUB_GIT = "xethub-git"
 
     def __init__(self):
 
         self.fs = pyxet.XetFS()
+        self.s3 = boto3.client('s3')
         self.xet_pyxet_repo = self._get_xet_repo(Helper.XETHUB_PY)
-        self.xet_local_repo = self._get_xet_repo(Helper.XETHUB_GIT)
+        self.xet_git_repo = self._get_xet_repo(Helper.XETHUB_GIT)
 
     @staticmethod
     def _get_xet_repo(path: str):
@@ -63,7 +64,6 @@ class Helper:
 
     def xethub_git_merged_upload(self, filepath: str):
         return self._xethub_upload(filepath, pyxet_api=False)
-
 
     def lakefs_new_upload(self, filepath: str):
         return self._lakefs_upload(filepath)
@@ -159,15 +159,40 @@ class Helper:
             )
         return merged_filepath
 
-    def xet_ls(self):
-        return self.fs.ls(self.xet_pyxet_repo, detail=False)
+    def git_exists(self, path: str, cwd: str):
+        return self.run(f"git cat-file -e origin:{path}", repo=cwd).returncode == 0
 
-    def xet_remove(self, filename: str):
+    def git_remove(self, path: str, cwd: str):
+        command = f"""
+        git rm {path}
+        git commit -m "remove {path}"
+        git push
+        """
+        self.run(command, repo=cwd)
+
+    def xet_ls(self, xet_repo: str):
+        return self.fs.ls(xet_repo, detail=False)
+
+    def xet_remove(self, filename: str, xet_repo: str):
         with self.fs.transaction:
-            self.fs.rm(f"{self.xet_pyxet_repo}/{filename}")
+            self.fs.rm(f"{xet_repo}/{filename}")
 
     def _lakefs_upload(self, filepath):
         self.run(f"lakectl fs upload -s {filepath} lakefs://versioning-article/main/{filepath}")
 
     def _s3_upload(self, filepath):
         self.run(f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}")
+
+    def s3_file_count(self, prefix: str = ''):
+        response = self.s3.list_objects_v2(Bucket='versioning-article', Prefix=prefix)
+        return response['KeyCount']
+
+    def s3_remove(self, filepath: str):
+        self.run(f"aws s3 rm s3://versioning-article/s3/{filepath}")
+
+    def s3_file_exists(self, filepath: str):
+        try:
+            self.s3.head_object(Bucket='versioning-article', Key=f's3/{filepath}')
+            return True
+        except Exception:
+            return False

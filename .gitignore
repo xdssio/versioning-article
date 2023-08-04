@@ -160,11 +160,12 @@ cython_debug/
 #.idea/
 .vscode/
 dvc/
-xethub_pyxet/
-xethub_git/
+xethub-py/
+xethub-git/
 lfs-s3/
 lfs-github/
 data/
+logs/
 mock/
 lfs-server/.env
 *.pyc
