@@ -164,9 +164,10 @@ xethub-py/
 xethub-git/
 lfs-s3/
 lfs-github/
-data/
-logs/
+taxi/
+blog/
 mock/
+logs/
 lfs-server/.env
 *.pyc
 tests/mock/

@@ -58,19 +58,24 @@ python src/generate.py --dir=mock --count=5 --rows=1000
     ```
 
 #### LFS - natural setup
+
 > **Warning:** THIS WILL COST YOU MONEY!
-Limitations:
+> Limitations:
+
 * GitHub Free and GitHub Pro have a maximum file size limit of 2 GB
 * GitHub Team has a maximum file size limit of 4 GB
 * GitHub Enterprise Cloud has a maximum file size limit of 5 GB
 * Bitbucket Cloud has a maximum file upload limit of 10 GB
 
 Setup:
+
 1. `git clone https://github.com/xdssio/versioning-lfs-github.git lfs-github`
 2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
 3. `cd lfs-github`
 4. `git lfs install`
 5. `git lfs track '*.parquet'`
+6. `git lfs track '*.csv'`
+7. `git add .gitattributes && git commit -m "Enable LFS" && git push`
 
 #### LFS setup + S3
 
@@ -79,8 +84,10 @@ Setup:
 3. `cd lfs-s3`
 4. `git lfs install`
 5. `git lfs track '*.parquet'`
-6. `cd ..` # so we can setup the server
-7. LFS server setup - [Reference](https://github.com/jasonwhite/rudolfs)
+6. `git lfs track '*.csv'`
+7. `git add .gitattributes && git commit -m "Enable LFS" && git push`
+8. `cd ..` # so we can setup the server
+9. LFS server setup - [Reference](https://github.com/jasonwhite/rudolfs)
     * Generating a random key is easy: `openssl rand -hex 32`
         * Keep this secret and save it in a password manager so you don't lose it. We will pass this to the server
           below.
@@ -101,7 +108,7 @@ Setup:
        # Use a global LFS cache to make re-cloning faster
        git config --global lfs.storage ~/.cache/lfs      
        ```
-8. Update the *lfs-s3/.lfsconfig* file:
+10. Update the *lfs-s3/.lfsconfig* file:
    ```bash
    [lfs]
    url = "http://http://0.0.0.0:8081/api/my-org/my-project"
@@ -112,19 +119,33 @@ Setup:
                        │           └ The port your server started with
                        └ The host name of your server
    ```
-8. Run local
-   ```bash
-   (cd lfs-server && docker-compose up)
-   AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000 
-   ```
+11. Run local : `docker-compose up`
 
 ## Run
-
+### Prepare docker servers
+```bash
+# Terminal 1
+(cd lfs-server && docker-compose up)
+# Terminal 2 
+AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000
+```
+### Taxi
 ```bash
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/download.py --dir=data --download=all --limit=40
-
 python src/main.py --dir=data --show --upload
+```
+### Blog csv append
+```bash
+export PYTHONPATH="$(pwd):$PYTHONPATH"
+python src/main.py --dir=blog --show --upload
+```
+### Mock data
+```bash
+export PYTHONPATH="$(pwd):$PYTHONPATH"
+python src/generate.py --dir=mock --count=10 --rows=10
+python src/main.py --dir=mock --show --upload
+
 ```
 
 ## Tests
