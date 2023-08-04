@@ -20,7 +20,7 @@ helper = Helper()
 metrics = MetricsHelper()
 
 
-def benchmark_append():
+def benchmark_csv():
     """
 
     # Create a file of size 1MB
@@ -28,7 +28,7 @@ def benchmark_append():
         add line to each file
         push to cloud
     """
-    filepath = 'blog/file.csv'
+    appended_filepath = filepath = 'blog/file.csv'
     filename = path.basename(filepath)
     metrics.set_file(filepath=filepath,
                      step=0,
@@ -40,29 +40,26 @@ def benchmark_append():
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
 
     original = pd.read_csv(filepath, nrows=650)
-    max_id = original['id'].max()
     genders = list(set(original['gender']))
     topics = list(set(original['topic']))
     signs = list(set(original['sign']))
-    max_date = pd.to_datetime(original['date'].max())
+    counter = original['id'].max()
+    date = pd.to_datetime(original['date'].max())
 
     def generate_text():
         return ''.join([choice(string.ascii_letters) for _ in range(100)])
 
-    def generate_row():
-        global max_id
-        global max_date
-        new_row = {'id': max_id,
+    def generate_row(counter: int, date: pd.Timestamp):
+        new_row = {'id': counter,
                    'gender': choice(genders),
                    'age': randint(0, 100),
                    'topic': choice(topics),
                    'signs': choice(signs),
-                   'date': max_date.strftime('%d,%B,%Y'),
+                   'date': date.strftime('%d,%B,%Y'),
                    'text': generate_text()
                    }
-        max_id += 1
-        max_date = max_date + pd.DateOffset(hours=1)
-        yield pd.DataFrame([new_row])
+
+        yield pd.DataFrame([new_row]), counter + 1, date + pd.DateOffset(hours=1)
 
     def append_row(row, filepath):
         row.to_csv(filepath, mode='a', header=False, index=False)
@@ -73,7 +70,7 @@ def benchmark_append():
                          file_bytes=metrics.get_file_size(filepath),
                          is_merged=True)
         if step > 0:
-            row = next(generate_row())
+            row, counter, date = next(generate_row(counter, date))
             for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
                 appended_filepath = os.path.join(repo, filename)
                 append_row(row, appended_filepath)
@@ -84,7 +81,7 @@ def benchmark_append():
         metrics.record(helper.lfs_git_merged_upload, tech=Helper.LFS, filepath=filepath)
         metrics.record(helper.xethub_py_merged_upload, tech=Helper.XETHUB, filepath=appended_filepath)
         metrics.record(helper.lakefs_merged_upload, tech=Helper.LAKEFS, filepath=appended_filepath)
-        metrics.export()  # TODO write just the last row
+        metrics.export()
 
 
 def benchmark_files(data: str):
@@ -151,7 +148,7 @@ if __name__ == '__main__':
     start = time.time()
     command = f"benchmark_files('{args.dir}')"
     if args.dir == 'blog':
-        command = f"benchmark_append('{args.dir}')"
+        command = f"benchmark_csv()"
     profiler.run(command)
     profiler.dump_stats('output/profile.prof')
 
