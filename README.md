@@ -11,7 +11,7 @@ Here we will run benchmarks for different data-versioning tools.
 ### Repositories
 
 Create a XetHub repository and three github repositories for DVC, git LFS and git-annex with readme's.
-Here I named them `versioning-xethub`, `versioning-dvc`, `versioning-lfs`.
+Here I named them `xethub-py`, `xethub-git`, `versioning-dvc`, `versioning-lfs`, `versioning-lfs-github`,
 
 We clone them locally and setup the remotes:
 Setup your git user name and python environment:
@@ -32,8 +32,8 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/$GITUSER/versioning-xethub.git xethub_pyxet` # use your own repository
-2. `git xet clone https://xethub.com/xdssio/xethub_git.git xethub_git`
+1. `git xet clone https://xethub.com/$GITUSER/xethub-py.git xethub-pyxet` # use your own repository
+2. `git xet clone https://xethub.com/xdssio/xethub-git.git xethub-git`
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
       export XET_USER_NAME=<user-name>
@@ -58,11 +58,15 @@ python src/generate.py --dir=mock --count=5 --rows=1000
     ```
 
 #### LFS - natural setup
-
-This uses the natural LFS setup, where the data is stored with a default git LFS server and storage.
 > **Warning:** THIS WILL COST YOU MONEY!
+Limitations:
+* GitHub Free and GitHub Pro have a maximum file size limit of 2 GB
+* GitHub Team has a maximum file size limit of 4 GB
+* GitHub Enterprise Cloud has a maximum file size limit of 5 GB
+* Bitbucket Cloud has a maximum file upload limit of 10 GB
 
-1. `git clone https://github.com/$GITUSER/versioning-lfs-github lfs-github`
+Setup:
+1. `git clone https://github.com/xdssio/versioning-lfs-github.git lfs-github`
 2. [Install CLI](https://github.com/git-lfs/git-lfs?utm_source=gitlfs_site&utm_medium=installation_link&utm_campaign=gitlfs#installing)
 3. `cd lfs-github`
 4. `git lfs install`
