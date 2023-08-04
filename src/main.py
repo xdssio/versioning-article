@@ -17,7 +17,18 @@ helper = Helper()
 metrics = MetricsHelper(merged_file=MERGED_FILE)
 
 
-def benchmark(data: str):
+def benchmark_append():
+    """
+
+    # Create a file of size 1MB
+    for step in range(100):
+        add line to each file
+        push to cloud
+    """
+    pass
+
+
+def benchmark_taxi(data: str):
     files = sorted(glob(f"{data}/*.parquet"))
     logger.info(f"benchmark- {data} : {len(files)} files")
     merged_filepath = path.join(data, 'merged.parquet')
