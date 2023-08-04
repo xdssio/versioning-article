@@ -8,11 +8,12 @@ import time
 from loguru import logger
 import json
 import duckdb
+import pyxet
 
 
 class MetricsHelper:
 
-    def __init__(self, merged_file: str = 'merged.parquet'):
+    def __init__(self):
         self.data_dir = ''
         self.file_count = -1
         self.datetime = dt.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -25,6 +26,7 @@ class MetricsHelper:
         self.row_count = -1
         self.output = 'output/results.csv'
         self.is_merged = False
+        self.pyxet_version = pyxet.__version__
 
     def count(self, filepath):
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
@@ -94,6 +96,7 @@ class MetricsHelper:
         df['data_dir'] = self.data_dir
         df['file_count'] = self.file_count
         df['datetime'] = self.datetime
+        df['pyxet_version'] = self.pyxet_version
         df['id'] = self._id
         return df
 
