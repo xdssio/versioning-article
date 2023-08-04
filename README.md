@@ -32,7 +32,8 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/$GITUSER/versioning-xethub.git xethub` # use your own repository
+1. `git xet clone https://xethub.com/$GITUSER/versioning-xethub.git xethub_pyxet` # use your own repository
+2. `git xet clone https://xethub.com/xdssio/xethub_git.git xethub_git`
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
       export XET_USER_NAME=<user-name>
@@ -88,7 +89,7 @@ This uses the natural LFS setup, where the data is stored with a default git LFS
         LFS_S3_BUCKET=my-bucket
         LFS_MAX_CACHE_SIZE=10GB
         ```
-        
+
     * Improve performance (optional)
        ```bash
        # Increase the number of worker threads
@@ -109,7 +110,9 @@ This uses the natural LFS setup, where the data is stored with a default git LFS
    ```
 8. Run local
    ```bash
-    cd lfs-server && docker-compose up
+   (cd lfs-server && docker-compose up)
+   AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000 
+   ```
 
 ## Run
 
@@ -117,11 +120,7 @@ This uses the natural LFS setup, where the data is stored with a default git LFS
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/download.py --dir=data --download=all --limit=40
 
-python src/main.py --dir=data
-# recommended:
-git add output.csv profile.prof
-git commit -m "upload results"
-git push
+python src/main.py --dir=data --show --upload
 ```
 
 ## Tests
@@ -156,4 +155,38 @@ jupyter notebook
 # open the notebook in the browser
 ```
 
-`  
+## LakeFS
+
+[Install CLI](https://docs.lakefs.io/reference/cli.html)
+`brew tap treeverse/lakefs && brew install lakefs`
+
+```bash
+```bash
+mkdir ~/lakefs/metadata
+docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
+```
+
+copy credentials
+lakectl config
+
+1. Create A New Repository
+2. connect S3 ...
+
+All data is pointers
+
+```bash
+AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000
+```
+
+[CLI](https://docs.lakefs.io/v0.52/reference/commands.html)
+
+```
+Upload a file:
+lakectl fs upload -s mock/0.parquet lakefs://versioning-article/main/0.parquet
+Downloading:
+lakectl fs download lakefs://<REPO>/<BRANCH>/path/to/object <DESTINATION>
+You can also leverage the --recursive flag to download/upload dirs
+
+
+
+```

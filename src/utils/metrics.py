@@ -12,7 +12,7 @@ import duckdb
 
 class MetricsHelper:
 
-    def __init__(self):
+    def __init__(self, merged_file: str = 'merged.parquet'):
         self.data_dir = ''
         self.file_count = -1
         self.datetime = dt.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -24,6 +24,7 @@ class MetricsHelper:
         self._id = hash(self.datetime)
         self.row_count = -1
         self.output = 'output/results.csv'
+        self.is_merged = False
 
     def count(self, filepath):
         return self.con.execute(f"""SELECT COUNT(*) FROM '{filepath}'""").fetchall()[0][0]
@@ -35,9 +36,10 @@ class MetricsHelper:
     def to_mb(bytes: int):
         return bytes / (1024 * 1024)
 
-    def set_file(self, filepath: str, step: int, file_bytes:int):
+    def set_file(self, filepath: str, step: int, file_bytes: int, is_merged: bool = False):
         logger.info(f"Setting file {filepath} for step {step}")
         self.filename = os.path.basename(filepath)
+        self.is_merged = is_merged
         self.file_bytes = file_bytes
         self.row_count = self.count(filepath)
         self.step = step
@@ -53,7 +55,7 @@ class MetricsHelper:
         net_io_after_sleep = psutil.net_io_counters()
         return self._to_send_recv(net_io_before_sleep, net_io_after_sleep)
 
-    def record(self, func: typing.Callable, tech: str, merged: bool = True, *args, **kwargs, ):
+    def record(self, func: typing.Callable, tech: str, *args, **kwargs, ):
         if self.step == -1:
             raise RuntimeError("No file set")
         error = ''
@@ -73,7 +75,7 @@ class MetricsHelper:
         result = {'time': func_time,
                   'function': func.__name__,
                   'tech': tech,
-                  'merged': merged,
+                  'merged': self.is_merged,
                   'filename': self.filename,
                   'step': self.step,
                   'file_mb': self.file_bytes,

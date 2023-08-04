@@ -160,7 +160,8 @@ cython_debug/
 #.idea/
 .vscode/
 dvc/
-xethub/
+xethub_pyxet/
+xethub_git/
 lfs-s3/
 lfs-github/
 data/
