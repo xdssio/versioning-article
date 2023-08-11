@@ -4,8 +4,6 @@ from src.utils.helper import Helper
 from src.utils import generate_mock_data
 import pytest
 
-from tests.utils import s3_file_count
-
 filename = '0.parquet'
 filepath = f"tests/mock/{filename}"
 helper = Helper()
@@ -17,17 +15,17 @@ def before_tests():
 
 
 def test_dvc_upload():
-    start_count = s3_file_count('dvc')
+    start_count = helper.s3_file_count('dvc')
     helper.copy_file(filepath, helper.DVC)
     helper._dvc_upload(filepath)
-    assert s3_file_count('dvc') == start_count + 1
+    assert helper.s3_file_count('dvc') == start_count + 1
 
 
 def test_lfs_s3_upload():
-    start_count = s3_file_count('lfs')
+    start_count = helper.s3_file_count('lfs')
     helper.copy_file(filepath, helper.LFS_S3)
     helper._lfs_upload(filepath, helper.LFS_S3)
-    assert s3_file_count('lfs') == start_count + 1
+    assert helper.s3_file_count('lfs') == start_count + 1
 
 
 def test_lfs_git_upload():
@@ -68,6 +66,6 @@ def test_s3_upload():
 
 
 def test_lakefs_upload():
-    start_count = s3_file_count(helper.LAKEFS)
+    start_count = helper.s3_file_count(helper.LAKEFS)
     helper._lakefs_upload(filepath)
-    assert s3_file_count(helper.LAKEFS) == start_count + 1
+    assert helper.s3_file_count(helper.LAKEFS) == start_count + 1

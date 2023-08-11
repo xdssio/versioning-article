@@ -21,13 +21,6 @@ metrics = MetricsHelper()
 
 
 def benchmark_csv():
-    """
-
-    # Create a file of size 1MB
-    for step in range(100):
-        add line to each file
-        push to cloud
-    """
     appended_filepath = filepath = 'blog/file.csv'
     filename = path.basename(filepath)
     metrics.set_file(filepath=filepath,
@@ -38,13 +31,15 @@ def benchmark_csv():
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.LFS_S3)
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.LFS_GITHUB)
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
-
-    original = pd.read_csv(filepath, nrows=650)
+    original = pd.read_csv(filepath, nrows=68200)
     genders = list(set(original['gender']))
     topics = list(set(original['topic']))
     signs = list(set(original['sign']))
     counter = original['id'].max()
-    date = pd.to_datetime(original['date'].max())
+    try:
+        date = pd.to_datetime(original['date'].max())
+    except ValueError:
+        date = pd.to_datetime('01,January,2004')
 
     def generate_text():
         return ''.join([choice(string.ascii_letters) for _ in range(100)])
@@ -64,24 +59,39 @@ def benchmark_csv():
     def append_row(row, filepath):
         row.to_csv(filepath, mode='a', header=False, index=False)
 
+
+    stop = False
     for step in range(CSV_APPEND_STEPS):
-        metrics.set_file(filepath=filepath,
-                         step=step,
-                         file_bytes=metrics.get_file_size(filepath),
-                         is_merged=True)
-        if step > 0:
-            row, counter, date = next(generate_row(counter, date))
-            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-                appended_filepath = os.path.join(repo, filename)
-                append_row(row, appended_filepath)
-        metrics.record(helper.xethub_git_merged_upload, tech=Helper.XETHUB, filepath=filepath)
-        metrics.record(helper.dvc_merged_upload, tech=Helper.DVC, filepath=filepath)
-        metrics.record(helper.lfs_s3_merged_upload, tech=Helper.LFS, filepath=filepath)
-        metrics.record(helper.s3_merged_upload, tech=Helper.S3, filepath=filepath)
-        metrics.record(helper.lfs_git_merged_upload, tech=Helper.LFS, filepath=filepath)
-        metrics.record(helper.xethub_py_merged_upload, tech=Helper.XETHUB, filepath=appended_filepath)
-        metrics.record(helper.lakefs_merged_upload, tech=Helper.LAKEFS, filepath=appended_filepath)
-        metrics.export()
+        if stop:
+            break
+        try:
+            metrics.set_file(filepath=filepath,
+                             step=step,
+                             file_bytes=metrics.get_file_size(filepath),
+                             is_merged=True)
+            if step > 0:
+                row, counter, date = next(generate_row(counter, date))
+                for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+                    appended_filepath = os.path.join(repo, filename)
+                    append_row(row, appended_filepath)
+            stop = stop or metrics.record(helper.xethub_git_merged_upload,
+                                          tech=Helper.XETHUB, filepath=filepath)
+            stop = stop or metrics.record(helper.dvc_merged_upload,
+                                          tech=Helper.DVC, filepath=filepath)
+            stop = stop or metrics.record(helper.lfs_s3_merged_upload,
+                                          tech=Helper.LFS, filepath=filepath)
+            stop = stop or metrics.record(helper.s3_merged_upload,
+                                          tech=Helper.S3, filepath=filepath)
+            stop = stop or metrics.record(helper.lfs_git_merged_upload,
+                                          tech=Helper.LFS, filepath=filepath)
+            stop = stop or metrics.record(helper.xethub_py_merged_upload,
+                                          tech=Helper.XETHUB, filepath=appended_filepath)
+            stop = stop or metrics.record(helper.lakefs_merged_upload,
+                                          tech=Helper.LAKEFS, filepath=appended_filepath)
+            stop = stop or metrics.export()
+        except KeyboardInterrupt as e:
+            logger.info(f"KeyboardInterrupt: {e}")
+            break
 
 
 def benchmark_files(data: str):
