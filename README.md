@@ -121,26 +121,50 @@ Setup:
    ```
 11. Run local : `docker-compose up`
 
+### LakeFS
+
+1. [Install CLI](https://docs.lakefs.io/reference/cli.html)
+
+* On mac: `brew tap treeverse/lakefs && brew install lakefs`
+
+2. Run using docker metadata and credentials
+   ```bash
+   mkdir ~/lakefs/metadata  # for persistency 
+   docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
+   ```
+3. Copy credentials ands save to `~/.lakefs.yaml`.
+4. Create a repository and connect to S3 in the UI
+
 ## Run
+
 ### Prepare docker servers
+
 ```bash
 # Terminal 1
 (cd lfs-server && docker-compose up)
 # Terminal 2 
-AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000
+docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
 ```
+
 ### Taxi
+
 ```bash
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/download.py --dir=data --download=all --limit=40
 python src/main.py --dir=data --show --upload
 ```
+
 ### Blog csv append
+
 ```bash
+export XET_LOG_LEVEL=debug
+export XET_LOG_PATH=logg/xethub.log
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/main.py --dir=blog --show --upload
 ```
+
 ### Mock data
+
 ```bash
 export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/generate.py --dir=mock --count=10 --rows=10
@@ -180,26 +204,10 @@ jupyter notebook
 # open the notebook in the browser
 ```
 
-## LakeFS
-
-[Install CLI](https://docs.lakefs.io/reference/cli.html)
-`brew tap treeverse/lakefs && brew install lakefs`
-
-```bash
-```bash
-mkdir ~/lakefs/metadata
-docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
-```
-
-copy credentials
-lakectl config
-
-1. Create A New Repository
-2. connect S3 ...
-
 All data is pointers
 
 ```bash
+# deprecated
 AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000
 ```
 

@@ -59,7 +59,6 @@ def benchmark_csv():
     def append_row(row, filepath):
         row.to_csv(filepath, mode='a', header=False, index=False)
 
-
     stop = False
     for step in range(CSV_APPEND_STEPS):
         if stop:
