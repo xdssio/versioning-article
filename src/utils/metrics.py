@@ -59,6 +59,7 @@ class MetricsHelper:
 
     def record(self, func: typing.Callable, tech: str, *args, **kwargs, ):
         try:
+            logger.info(f"Running {func.__name__}")
             if self.step == -1:
                 raise RuntimeError("No file set")
             error = ''
