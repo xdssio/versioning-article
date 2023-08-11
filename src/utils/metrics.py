@@ -58,38 +58,42 @@ class MetricsHelper:
         return self._to_send_recv(net_io_before_sleep, net_io_after_sleep)
 
     def record(self, func: typing.Callable, tech: str, *args, **kwargs, ):
-        if self.step == -1:
-            raise RuntimeError("No file set")
-        error = ''
-        start_func_time = time.time()
-        net_io_before = psutil.net_io_counters()
-        logger.debug(f"Running {func.__name__} with {args} and {kwargs}")
         try:
-            func(*args, **kwargs)
-        except Exception as e:
-            error = str(e)
-            logger.error(f"Error running {func.__name__} with {args} and {kwargs} - {e}")
+            if self.step == -1:
+                raise RuntimeError("No file set")
+            error = ''
+            start_func_time = time.time()
+            net_io_before = psutil.net_io_counters()
+            logger.debug(f"Running {func.__name__} with {args} and {kwargs}")
+            try:
+                func(*args, **kwargs)
+            except Exception as e:
+                error = str(e)
+                logger.error(f"Error running {func.__name__} with {args} and {kwargs} - {e}")
 
-        net_io_after = psutil.net_io_counters()
-        func_time = time.time() - start_func_time
-        bytes_sent, bytes_recv = self._to_send_recv(net_io_before, net_io_after)
-        sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(1)
-        result = {'time': func_time,
-                  'function': func.__name__,
-                  'tech': tech,
-                  'merged': self.is_merged,
-                  'filename': self.filename,
-                  'step': self.step,
-                  'file_mb': self.file_bytes,
-                  'row_count': self.row_count,
-                  'sent_mb': bytes_sent,
-                  'recv_mb': bytes_recv,
-                  'sent_mb_1s': sleep_bytes_sent,
-                  'recv_mb_1s': sleep_bytes_recv,
-                  'error': error,
-                  }
-        logger.debug(json.dumps(result, indent=4))
-        self.steps.append(result)
+            net_io_after = psutil.net_io_counters()
+            func_time = time.time() - start_func_time
+            bytes_sent, bytes_recv = self._to_send_recv(net_io_before, net_io_after)
+            sleep_bytes_sent, sleep_bytes_recv = self.bytes_in_rest(1)
+            result = {'time': func_time,
+                      'function': func.__name__,
+                      'tech': tech,
+                      'merged': self.is_merged,
+                      'filename': self.filename,
+                      'step': self.step,
+                      'file_mb': self.file_bytes,
+                      'row_count': self.row_count,
+                      'sent_mb': bytes_sent,
+                      'recv_mb': bytes_recv,
+                      'sent_mb_1s': sleep_bytes_sent,
+                      'recv_mb_1s': sleep_bytes_recv,
+                      'error': error,
+                      }
+            logger.debug(json.dumps(result, indent=4))
+            self.steps.append(result)
+        except KeyboardInterrupt:
+            return True
+        return False
 
     def _get_stats(self):
         df = pd.DataFrame(self.steps)
