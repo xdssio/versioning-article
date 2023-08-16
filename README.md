@@ -158,9 +158,9 @@ python src/main.py --dir=data --show --upload
 
 ```bash
 export XET_LOG_LEVEL=debug
-export XET_LOG_PATH=logg/xethub.log
+export XET_LOG_PATH=logs/xethub.log
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/main.py --dir=blog --show --upload
+python src/main.py blog -i=10 --show --upload
 ```
 
 ### Mock data
