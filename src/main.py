@@ -53,23 +53,18 @@ def benchmark_blog(iterations: int = 100):
     original = 'blog/original.csv'
     appended_filepath = filepath = 'blog/blog.csv'
 
-    shutil.copyfile(original, filepath)
-    filename = path.basename(filepath)
-    metrics.set_file(filepath=filepath,
-                     step=0,
-                     file_bytes=metrics.get_file_size(filepath),
-                     is_merged=True)
-    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.DVC)
-    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.LFS_S3)
-    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.LFS_GITHUB)
-    metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
-    data = pd.read_csv(filepath, nrows=68200)
+    data = pd.read_csv(original, nrows=68200)
     generator = BlogRowsGenerator(counter=data['id'].max(),
                                   date=data['date'].max(),
                                   genders=list(set(data['gender'])),
                                   topics=list(set(data['topic'])),
                                   signs=list(set(data['sign'])),
                                   )
+    shutil.copyfile(original, filepath)
+    filename = path.basename(filepath)
+    for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=repo)
+
     stop = False  # for graceful exit
     for step in range(iterations):
         if stop:
