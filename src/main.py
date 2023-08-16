@@ -3,25 +3,56 @@ import contextlib
 import os.path
 import os.path as path
 import time
+import shutil
 import cProfile
-import string
 from tqdm import tqdm
 from glob import glob
 from loguru import logger
 import pandas as pd
-from random import choice, randint
 from src.utils.metrics import MetricsHelper
 from src.utils.helper import Helper
+from src.utils import BlogRowsGenerator, generate_data
 
 logger.add("logs/{time}.log")
-MERGED_FILE = 'merged.parquet'
-CSV_APPEND_STEPS = 100
 helper = Helper()
 metrics = MetricsHelper()
 
+def benchmark_random(iterations: int = 100):
+    logger.info(f"benchmark - random - {iterations} files")
+    stop = False
+    for step in tqdm(range(iterations)):
+        filename = f"{step}.csv"
+        filepath = f"random/{filename}"
+        df = generate_data(num_rows=1000)
+        df.to_csv(filepath)
+        stop = False  # for graceful exit
+        for step in range(iterations):
+            if stop:
+                break
 
-def benchmark_csv():
-    appended_filepath = filepath = 'blog/file.csv'
+            metrics.set_file(filepath=filepath,
+                             step=step,
+                             file_bytes=metrics.get_file_size(filepath),
+                             is_merged=False)
+            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+                new_filepath = os.path.join(repo, filename)
+                df.to_csv(new_filepath, index=False)
+            for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+                               (helper.dvc_new_upload, Helper.DVC),
+                               (helper.lfs_s3_new_upload, Helper.LFS),
+                               (helper.s3_new_upload, Helper.S3),
+                               (helper.lfs_git_new_upload, Helper.LFS),
+                               (helper.xethub_py_new_upload, Helper.XETHUB),
+                               (helper.lakefs_new_upload, Helper.LAKEFS)]:
+                stop = stop or metrics.record(func, tech=tech, filepath=filepath)
+                metrics.export()
+
+def benchmark_blog(iterations: int = 100):
+    logger.info(f"benchmark - blog - {iterations} iterations")
+    original = 'blog/original.csv'
+    appended_filepath = filepath = 'blog/blog.csv'
+
+    shutil.copyfile(original, filepath)
     filename = path.basename(filepath)
     metrics.set_file(filepath=filepath,
                      step=0,
@@ -31,36 +62,15 @@ def benchmark_csv():
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.LFS_S3)
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.LFS_GITHUB)
     metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
-    original = pd.read_csv(filepath, nrows=68200)
-    genders = list(set(original['gender']))
-    topics = list(set(original['topic']))
-    signs = list(set(original['sign']))
-    counter = original['id'].max()
-    try:
-        date = pd.to_datetime(original['date'].max())
-    except ValueError:
-        date = pd.to_datetime('01,January,2004')
-
-    def generate_text():
-        return ''.join([choice(string.ascii_letters) for _ in range(100)])
-
-    def generate_row(counter: int, date: pd.Timestamp):
-        new_row = {'id': counter,
-                   'gender': choice(genders),
-                   'age': randint(0, 100),
-                   'topic': choice(topics),
-                   'signs': choice(signs),
-                   'date': date.strftime('%d,%B,%Y'),
-                   'text': generate_text()
-                   }
-
-        yield pd.DataFrame([new_row]), counter + 1, date + pd.DateOffset(hours=1)
-
-    def append_row(row, filepath):
-        row.to_csv(filepath, mode='a', header=False, index=False)
-
-    stop = False
-    for step in range(CSV_APPEND_STEPS):
+    data = pd.read_csv(filepath, nrows=68200)
+    generator = BlogRowsGenerator(counter=data['id'].max(),
+                                  date=data['date'].max(),
+                                  genders=list(set(data['gender'])),
+                                  topics=list(set(data['topic'])),
+                                  signs=list(set(data['sign'])),
+                                  )
+    stop = False  # for graceful exit
+    for step in range(iterations):
         if stop:
             break
         try:
@@ -69,39 +79,34 @@ def benchmark_csv():
                              file_bytes=metrics.get_file_size(filepath),
                              is_merged=True)
             if step > 0:
-                row, counter, date = next(generate_row(counter, date))
                 for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
                     appended_filepath = os.path.join(repo, filename)
-                    append_row(row, appended_filepath)
-            stop = stop or metrics.record(helper.xethub_git_merged_upload,
-                                          tech=Helper.XETHUB, filepath=filepath)
-            stop = stop or metrics.record(helper.dvc_merged_upload,
-                                          tech=Helper.DVC, filepath=filepath)
-            stop = stop or metrics.record(helper.lfs_s3_merged_upload,
-                                          tech=Helper.LFS, filepath=filepath)
-            stop = stop or metrics.record(helper.s3_merged_upload,
-                                          tech=Helper.S3, filepath=filepath)
-            stop = stop or metrics.record(helper.lfs_git_merged_upload,
-                                          tech=Helper.LFS, filepath=filepath)
-            stop = stop or metrics.record(helper.xethub_py_merged_upload,
-                                          tech=Helper.XETHUB, filepath=appended_filepath)
-            stop = stop or metrics.record(helper.lakefs_merged_upload,
-                                          tech=Helper.LAKEFS, filepath=appended_filepath)
-            stop = stop or metrics.export()
+                    generator.append_mock_row(appended_filepath)
+            for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+                               (helper.dvc_new_upload, Helper.DVC),
+                               (helper.lfs_s3_new_upload, Helper.LFS),
+                               (helper.s3_new_upload, Helper.S3),
+                               (helper.lfs_git_new_upload, Helper.LFS),
+                               (helper.xethub_py_new_upload, Helper.XETHUB),
+                               (helper.lakefs_new_upload, Helper.LAKEFS)]:
+                stop = stop or metrics.record(func, tech=tech, filepath=filepath)
+                metrics.export()
         except KeyboardInterrupt as e:
             logger.info(f"KeyboardInterrupt: {e}")
             break
 
 
-def benchmark_files(data: str):
-    files = sorted(glob(f"{data}/*.parquet"))
-    logger.info(f"benchmark- {data} : {len(files)} files")
-    merged_filepath = path.join(data, 'merged.parquet')
+def benchmark_taxi(iterations: int = 100):
+    files = sorted(glob(f"taxi/*.parquet"))
+    logger.info(f"benchmark - taxi : {len(files)} files")
+    merged_filepath = path.join('taxi', 'merged.parquet')
     file_count = len(files)
     if merged_filepath in files:
         file_count -= 1
 
     for step, filepath in tqdm(enumerate(files)):
+        if step == iterations:
+            break
         metrics.set_file(filepath=filepath,
                          step=step,
                          file_bytes=metrics.get_file_size(filepath),
@@ -141,9 +146,8 @@ def benchmark_files(data: str):
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
-    p.add_argument('-d',
-                   '--dir', default='mock',
-                   help='The directory in which to download data and perform searches.')
+    p.add_argument('experiment', choices=['blog', 'taxi', 'random'], help='The experiment to run')
+    p.add_argument('-i', '--iterations', type=int, help='Number of iterations to run', default=10)
     p.add_argument('-u',
                    '--upload', default=False, action='store_true',
                    help='If True, upload to repo')
@@ -151,13 +155,24 @@ if __name__ == '__main__':
                    '--show', default=False, action='store_true',
                    help='If True, run snakeviz server')
     args = p.parse_args()
-    metrics.data_dir = args.dir
-    metrics.file_count = len(glob(f"{args.dir}/*"))
+    iterations = args.iterations
+    if args.experiment == 'blog':
+        data_dir = 'blog'
+        command = f"benchmark_blog({iterations})"
+    elif args.experiment == 'taxi':
+        data_dir = 'taxi'
+        command = f"benchmark_taxi({iterations})"
+    elif args.experiment == 'random':
+        data_dir = 'random'
+        command = f"benchmark_random({iterations})"
+    else:
+        # not implemented
+        data_dir = 'mock'
+        command = ""
+    metrics.data_dir = data_dir
+    metrics.file_count = len(glob(f"{data_dir}/*"))
     profiler = cProfile.Profile()
     start = time.time()
-    command = f"benchmark_files('{args.dir}')"
-    if args.dir == 'blog':
-        command = f"benchmark_csv()"
     profiler.run(command)
     profiler.dump_stats('output/profile.prof')
 

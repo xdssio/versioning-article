@@ -1,5 +1,5 @@
 import argparse
-from utils import generate_mock_data
+from utils import generate_mock_files
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
@@ -14,4 +14,4 @@ if __name__ == '__main__':
         help='number of rows per file')
     args = p.parse_args()
 
-    generate_mock_data(args.dir, int(args.count), int(args.rows))
+    generate_mock_files(args.dir, int(args.count), int(args.rows))
