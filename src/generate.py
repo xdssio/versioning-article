@@ -1,5 +1,5 @@
 import argparse
-from utils import generate_mock_files
+from utils import DataFrameGenerator
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
@@ -13,5 +13,6 @@ if __name__ == '__main__':
         '--rows', default=1000, type=int,
         help='number of rows per file')
     args = p.parse_args()
+    generator = DataFrameGenerator(target=args.dir, rows=args.rows, count=args.count)
+    generator.generate_mock_files()
 
-    generate_mock_files(args.dir, int(args.count), int(args.rows))
