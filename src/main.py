@@ -17,9 +17,9 @@ logger.add("logs/{time}.log")
 helper = Helper()
 metrics = MetricsHelper()
 
+
 def benchmark_random(iterations: int = 100):
     logger.info(f"benchmark - random - {iterations} files")
-    stop = False
     for step in tqdm(range(iterations)):
         filename = f"{step}.csv"
         filepath = f"random/{filename}"
@@ -46,6 +46,7 @@ def benchmark_random(iterations: int = 100):
                                (helper.lakefs_new_upload, Helper.LAKEFS)]:
                 stop = stop or metrics.record(func, tech=tech, filepath=filepath)
                 metrics.export()
+
 
 def benchmark_blog(iterations: int = 100):
     logger.info(f"benchmark - blog - {iterations} iterations")
@@ -114,34 +115,31 @@ def benchmark_taxi(iterations: int = 100):
         # Create merged file
         metrics.record(helper.merge_files, tech=Helper.M1, new_filepath=filepath, merged_filepath=merged_filepath)
         # copy locally
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.DVC)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=helper.DVC)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=helper.LFS_S3)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=helper.LFS_S3)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.LFS_GITHUB)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=Helper.LFS_GITHUB)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=Helper.XETHUB_GIT)
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=Helper.XETHUB_GIT)
+        for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+            metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=repo)
+            metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=repo)
 
-        metrics.record(helper.xethub_py_new_upload, tech=Helper.XETHUB, filepath=filepath)
-        metrics.record(helper.dvc_new_upload, tech=Helper.DVC, filepath=filepath)
-        metrics.record(helper.lfs_s3_new_upload, tech=Helper.LFS, filepath=filepath)
-        metrics.record(helper.xethub_git_new_upload, tech=Helper.XETHUB, filepath=filepath)
-        metrics.record(helper.lfs_git_new_upload, tech=Helper.LFS, filepath=filepath)
-        metrics.record(helper.s3_new_upload, tech=Helper.S3, filepath=filepath)
-        metrics.record(helper.lakefs_new_upload, tech=Helper.LAKEFS, filepath=filepath)
+        for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+                           (helper.dvc_new_upload, Helper.DVC),
+                           (helper.lfs_s3_new_upload, Helper.LFS),
+                           (helper.s3_new_upload, Helper.S3),
+                           (helper.lfs_git_new_upload, Helper.LFS),
+                           (helper.xethub_py_new_upload, Helper.XETHUB),
+                           (helper.lakefs_new_upload, Helper.LAKEFS)]:
+            metrics.record(func, tech=tech, filepath=filepath)
+            metrics.export()
 
         metrics.set_file(filepath=filepath, step=step, file_bytes=metrics.get_file_size(merged_filepath),
                          is_merged=True)
-        metrics.record(helper.xethub_py_merged_upload, tech=Helper.XETHUB, filepath=merged_filepath)
-        metrics.record(helper.dvc_merged_upload, tech=Helper.DVC, filepath=merged_filepath)
-        metrics.record(helper.lfs_s3_merged_upload, tech=Helper.LFS, filepath=merged_filepath)
-        metrics.record(helper.xethub_git_merged_upload, tech=Helper.XETHUB, filepath=merged_filepath)
-        metrics.record(helper.lfs_git_merged_upload, tech=Helper.LFS, filepath=merged_filepath)
-        metrics.record(helper.s3_merged_upload, tech=Helper.S3, filepath=merged_filepath)
-        metrics.record(helper.lakefs_merged_upload, tech=Helper.LAKEFS, filepath=merged_filepath)
-
-        metrics.export()  # TODO write just the last row
+        for func, tech in [(helper.xethub_py_merged_upload, Helper.XETHUB),
+                           (helper.dvc_merged_upload, Helper.DVC),
+                           (helper.lfs_s3_merged_upload, Helper.LFS),
+                           (helper.xethub_git_merged_upload, Helper.XETHUB),
+                           (helper.lfs_git_merged_upload, Helper.LFS),
+                           (helper.s3_merged_upload, Helper.S3),
+                           (helper.lakefs_merged_upload, Helper.LAKEFS)]:
+            metrics.record(func, tech=tech, filepath=merged_filepath)
+            metrics.export()
 
 
 if __name__ == '__main__':
