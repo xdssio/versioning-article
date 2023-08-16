@@ -53,10 +53,10 @@ class Helper:
     def lfs_git_merged_upload(self, filepath: str):
         return self._lfs_upload(filepath, Helper.LFS_GITHUB)
 
-    def xethub_py_new_upload(self, filepath: str):
+    def pyxet_new_upload(self, filepath: str):
         return self._xethub_upload(filepath)
 
-    def xethub_py_merged_upload(self, filepath: str):
+    def pyxet_merged_upload(self, filepath: str):
         return self._xethub_upload(filepath)
 
     def xethub_git_new_upload(self, filepath: str):

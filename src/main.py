@@ -20,32 +20,30 @@ metrics = MetricsHelper()
 
 def benchmark_random(iterations: int = 100):
     logger.info(f"benchmark - random - {iterations} files")
+    stop = False  # for graceful exit
+    filename = f"data.csv"
+    filepath = f"random/{filename}"
     for step in tqdm(range(iterations)):
-        filename = f"{step}.csv"
-        filepath = f"random/{filename}"
+        if stop:
+            break
         df = generate_data(num_rows=1000)
         df.to_csv(filepath)
-        stop = False  # for graceful exit
-        for step in range(iterations):
-            if stop:
-                break
-
-            metrics.set_file(filepath=filepath,
-                             step=step,
-                             file_bytes=metrics.get_file_size(filepath),
-                             is_merged=False)
-            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-                new_filepath = os.path.join(repo, filename)
-                df.to_csv(new_filepath, index=False)
-            for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
-                               (helper.dvc_new_upload, Helper.DVC),
-                               (helper.lfs_s3_new_upload, Helper.LFS),
-                               (helper.s3_new_upload, Helper.S3),
-                               (helper.lfs_git_new_upload, Helper.LFS),
-                               (helper.xethub_py_new_upload, Helper.XETHUB),
-                               (helper.lakefs_new_upload, Helper.LAKEFS)]:
-                stop = stop or metrics.record(func, tech=tech, filepath=filepath)
-                metrics.export()
+        metrics.set_file(filepath=filepath,
+                         step=step,
+                         file_bytes=metrics.get_file_size(filepath),
+                         is_merged=False)
+        for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+            new_filepath = os.path.join(repo, filename)
+            df.to_csv(new_filepath, index=False)
+        for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+                           (helper.dvc_new_upload, Helper.DVC),
+                           (helper.lfs_s3_new_upload, Helper.LFS),
+                           (helper.s3_new_upload, Helper.S3),
+                           (helper.lfs_git_new_upload, Helper.LFS),
+                           (helper.pyxet_new_upload, Helper.XETHUB),
+                           (helper.lakefs_new_upload, Helper.LAKEFS)]:
+            stop = stop or metrics.record(func, tech=tech, filepath=filepath)
+            metrics.export()
 
 
 def benchmark_blog(iterations: int = 100):
@@ -74,17 +72,16 @@ def benchmark_blog(iterations: int = 100):
                              step=step,
                              file_bytes=metrics.get_file_size(filepath),
                              is_merged=True)
-            if step > 0:
-                for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-                    appended_filepath = os.path.join(repo, filename)
-                    generator.append_mock_row(appended_filepath)
-            for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
-                               (helper.dvc_new_upload, Helper.DVC),
-                               (helper.lfs_s3_new_upload, Helper.LFS),
-                               (helper.s3_new_upload, Helper.S3),
-                               (helper.lfs_git_new_upload, Helper.LFS),
-                               (helper.xethub_py_new_upload, Helper.XETHUB),
-                               (helper.lakefs_new_upload, Helper.LAKEFS)]:
+
+            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+                generator.append_mock_row(os.path.join(repo, filename))
+            for func, tech in [(helper.xethub_git_merged_upload, Helper.XETHUB),
+                               (helper.dvc_merged_upload, Helper.DVC),
+                               (helper.lfs_s3_merged_upload, Helper.LFS),
+                               (helper.s3_merged_upload, Helper.S3),
+                               (helper.lfs_git_merged_upload, Helper.LFS),
+                               (helper.pyxet_merged_upload, Helper.XETHUB),
+                               (helper.lakefs_merged_upload, Helper.LAKEFS)]:
                 stop = stop or metrics.record(func, tech=tech, filepath=filepath)
                 metrics.export()
         except KeyboardInterrupt as e:
@@ -92,7 +89,7 @@ def benchmark_blog(iterations: int = 100):
             break
 
 
-def benchmark_taxi(iterations: int = 100):
+def benchmark_taxi(iterations: int = 20):
     files = sorted(glob(f"taxi/*.parquet"))
     logger.info(f"benchmark - taxi : {len(files)} files")
     merged_filepath = path.join('taxi', 'merged.parquet')
@@ -119,14 +116,14 @@ def benchmark_taxi(iterations: int = 100):
                            (helper.lfs_s3_new_upload, Helper.LFS),
                            (helper.s3_new_upload, Helper.S3),
                            (helper.lfs_git_new_upload, Helper.LFS),
-                           (helper.xethub_py_new_upload, Helper.XETHUB),
+                           (helper.pyxet_new_upload, Helper.XETHUB),
                            (helper.lakefs_new_upload, Helper.LAKEFS)]:
             metrics.record(func, tech=tech, filepath=filepath)
             metrics.export()
 
-        metrics.set_file(filepath=filepath, step=step, file_bytes=metrics.get_file_size(merged_filepath),
+        metrics.set_file(filepath=merged_filepath, step=step, file_bytes=metrics.get_file_size(merged_filepath),
                          is_merged=True)
-        for func, tech in [(helper.xethub_py_merged_upload, Helper.XETHUB),
+        for func, tech in [(helper.pyxet_merged_upload, Helper.XETHUB),
                            (helper.dvc_merged_upload, Helper.DVC),
                            (helper.lfs_s3_merged_upload, Helper.LFS),
                            (helper.xethub_git_merged_upload, Helper.XETHUB),
