@@ -11,7 +11,7 @@ from loguru import logger
 import pandas as pd
 from src.utils.metrics import MetricsHelper
 from src.utils.helper import Helper
-from src.utils import BlogRowsGenerator, generate_data
+from src.utils.generators import BlogRowsGenerator, DataFrameGenerator
 
 logger.add("logs/{time}.log")
 helper = Helper()
@@ -23,10 +23,11 @@ def benchmark_random(iterations: int = 100):
     stop = False  # for graceful exit
     filename = f"data.csv"
     filepath = f"random/{filename}"
+    generator = DataFrameGenerator(num_rows=1000)
     for step in tqdm(range(iterations)):
         if stop:
             break
-        df = generate_data(num_rows=1000)
+        df = generator.generate_data()
         df.to_csv(filepath)
         metrics.set_file(filepath=filepath,
                          step=step,
