@@ -12,31 +12,33 @@ import pandas as pd
 from src.utils.metrics import MetricsHelper
 from src.utils.helper import Helper
 from src.utils.generators import BlogRowsGenerator, DataFrameGenerator
+from xetrack import Tracker
 
 logger.add("logs/{time}.log")
 helper = Helper()
 metrics = MetricsHelper()
+tracker = Tracker('output/stats.db', verbose=False)
 
 
 def benchmark_random(iterations: int = 100):
     logger.info(f"benchmark - random - {iterations} files")
     stop = False  # for graceful exit
-    filename = f"data.csv"
+    filename = f"data.parquet"
     filepath = f"random/{filename}"
-    generator = DataFrameGenerator(num_rows=1000)
+    generator = DataFrameGenerator(num_rows=10000)  # ~ 1.2MB
     for step in tqdm(range(iterations)):
         if stop:
             break
         df = generator.generate_data()
-        df.to_csv(filepath)
+        df.to_parquet(filepath)
         metrics.set_file(filepath=filepath,
                          step=step,
                          file_bytes=metrics.get_file_size(filepath),
                          is_merged=False)
         for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
             new_filepath = os.path.join(repo, filename)
-            df.to_csv(new_filepath, index=False)
-        for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+            df.to_parquet(new_filepath, index=False)
+        for func, tech in [(helper.gitxet_new_upload, Helper.XETHUB),
                            (helper.dvc_new_upload, Helper.DVC),
                            (helper.lfs_s3_new_upload, Helper.LFS),
                            (helper.s3_new_upload, Helper.S3),
@@ -61,30 +63,33 @@ def benchmark_blog(iterations: int = 100):
                                   )
     shutil.copyfile(original, filepath)
     filename = path.basename(filepath)
+    tracker.set_params({'merged': True, 'step': -1, 'filename': filename, 'tech': Helper.M1})
     for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-        metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=repo)
+        tracker.track_function(helper.copy_file, filepath=filepath, repo=repo)
 
     stop = False  # for graceful exit
     for step in range(iterations):
         if stop:
             break
         try:
-            metrics.set_file(filepath=filepath,
-                             step=step,
-                             file_bytes=metrics.get_file_size(filepath),
-                             is_merged=True)
+            tracker.set_params({'filename': filename,
+                                'step': step,
+                                'file_bytes': helper.get_file_size(filepath),
+                                'is_merged': True})
 
             for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
                 generator.append_mock_row(os.path.join(repo, filename))
-            for func, tech in [(helper.xethub_git_merged_upload, Helper.XETHUB),
-                               (helper.dvc_merged_upload, Helper.DVC),
-                               (helper.lfs_s3_merged_upload, Helper.LFS),
-                               (helper.s3_merged_upload, Helper.S3),
-                               (helper.lfs_git_merged_upload, Helper.LFS),
-                               (helper.pyxet_merged_upload, Helper.XETHUB),
-                               (helper.lakefs_merged_upload, Helper.LAKEFS)]:
-                stop = stop or metrics.record(func, tech=tech, filepath=filepath)
-                metrics.export()
+            for func in (helper.gitxet_merged_upload,
+                         helper.dvc_merged_upload,
+                         helper.lfs_s3_merged_upload,
+                         helper.s3_merged_upload,
+                         helper.lfs_git_merged_upload,
+                         helper.pyxet_merged_upload,
+                         helper.lakefs_merged_upload):
+                try:
+                    tracker.track_function(func, filepath=filepath)
+                except KeyboardInterrupt:
+                    stop = True
         except KeyboardInterrupt as e:
             logger.info(f"KeyboardInterrupt: {e}")
             break
@@ -112,7 +117,7 @@ def benchmark_taxi(iterations: int = 20):
             metrics.record(helper.copy_file, tech=Helper.M1, filepath=filepath, repo=repo)
             metrics.record(helper.copy_file, tech=Helper.M1, filepath=merged_filepath, repo=repo)
 
-        for func, tech in [(helper.xethub_git_new_upload, Helper.XETHUB),
+        for func, tech in [(helper.gitxet_new_upload, Helper.XETHUB),
                            (helper.dvc_new_upload, Helper.DVC),
                            (helper.lfs_s3_new_upload, Helper.LFS),
                            (helper.s3_new_upload, Helper.S3),
@@ -127,7 +132,7 @@ def benchmark_taxi(iterations: int = 20):
         for func, tech in [(helper.pyxet_merged_upload, Helper.XETHUB),
                            (helper.dvc_merged_upload, Helper.DVC),
                            (helper.lfs_s3_merged_upload, Helper.LFS),
-                           (helper.xethub_git_merged_upload, Helper.XETHUB),
+                           (helper.gitxet_merged_upload, Helper.XETHUB),
                            (helper.lfs_git_merged_upload, Helper.LFS),
                            (helper.s3_merged_upload, Helper.S3),
                            (helper.lakefs_merged_upload, Helper.LAKEFS)]:
