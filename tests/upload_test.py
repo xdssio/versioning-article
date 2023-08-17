@@ -1,7 +1,7 @@
 import time
 
 from src.utils.helper import Helper
-from src.utils import generate_mock_files
+from src.utils.generators import DataFrameGenerator
 import pytest
 
 filename = '0.parquet'
@@ -11,7 +11,7 @@ helper = Helper()
 
 @pytest.fixture(scope="session", autouse=True)
 def before_tests():
-    generate_mock_files('tests/mock', file_count=1, num_rows=300)
+    DataFrameGenerator().generate_mock_files('tests/mock', file_count=1, num_rows=300)
 
 
 def test_dvc_upload():
