@@ -1,2 +1,15 @@
-timestamp,track_id,merged,step,filename,tech,p_memory_percent,memory_percent,cpu,function,bytes_sent,bytes_recv,disk_percent,name,time,error,file_bytes,is_merged,workflow,filepath,args,kwargs,mb/s
-17-08-2023 21:29:25.9322,a67a34e9-833a-4c10-8d9a-a46a0601ec12,true,0,blog.csv,xethub,13.181801000000007,285.223496,0.0,git-xet,0.3916015625,0.353515625,16.199999999999996,gitxet merged upload,26.262175798416138,,76.20008087158203,true,append,,['blog/blog.csv'],{},2.901514385421852
+timestamp,track_id,merged,step,filename,tech,p_memory_percent,memory_percent,cpu,function,bytes_sent,bytes_recv,disk_percent,name,time,error,file_bytes,is_merged,workflow,filepath,args,kwargs,pyxet_version,gitxet_version,mb/s
+17-08-2023 21:35:06.1516,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,lakefs,2.7399299999999998,63.778824,0.0,lakefs,156.5244140625,77.3779296875,3.6,lakefs merged upload,5.274678945541382,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",14.446392218050159
+17-08-2023 21:35:29.4960,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,dvc,10.891874999999999,255.230982,0.0,dvc,79.494140625,1.3662109375,14.399999999999995,dvc merged upload,23.310661792755127,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",3.2688939314140257
+17-08-2023 21:35:54.7262,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,lfs,11.766991000000004,277.376737,0.0,lfs s3,467.3349609375,232.5576171875,15.599999999999994,lfs s3 merged upload,25.172760725021362,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",3.0270847804086998
+17-08-2023 21:36:07.6243,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,s3,5.876948,138.981136,0.0,s3,79.5009765625,1.55078125,7.799999999999998,s3 merged upload,12.85765290260315,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",5.926437853689038
+17-08-2023 21:36:18.9950,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,xethub,7.130336,128.198271,12.9,pyxet,0.19140625,0.232421875,7.199999999999998,pyxet merged upload,11.32605504989624,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",6.727857187333741
+17-08-2023 21:36:40.0344,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,lfs,15.693239,224.105108,0.0,lfs git,79.5537109375,1.021484375,12.599999999999996,lfs git merged upload,20.99192500114441,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",3.6299710897132043
+17-08-2023 21:36:41.6535,a461e747-8ed5-4a61-862a-9194bdd236ff,true,0,blog.csv,xethub,1.4887869999999999,21.302837,0.0,git-xet,0.001953125,0.01171875,1.2,gitxet merged upload,1.5850203037261963,,76.20008087158203,true,append,,['blog/blog.csv'],{},0.1.2-rc1,"gitxetcore 0.11.0-5dc8c78
+",48.07514496340811
