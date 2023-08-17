@@ -41,11 +41,11 @@ class Helper:
 
     def dvc_merged_upload(self, filepath: str):
         self._dvc_upload(filepath)
-        return {'function': 'dvc merged upload', 'tech': 'dvc','merged': True}
+        return {'function': 'dvc merged upload', 'tech': 'dvc', 'merged': True}
 
     def lfs_s3_new_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_S3)
-        return {'function': 'lfs s3 new upload', 'tech': 'lfs','merged': False}
+        return {'function': 'lfs s3 new upload', 'tech': 'lfs', 'merged': False}
 
     def lfs_s3_merged_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_S3)
@@ -53,15 +53,15 @@ class Helper:
 
     def lfs_git_new_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git new upload', 'tech': 'lfs','merged': False}
+        return {'function': 'lfs git new upload', 'tech': 'lfs', 'merged': False}
 
     def lfs_git_merged_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git merged upload', 'tech': 'lfs','merged': True}
+        return {'function': 'lfs git merged upload', 'tech': 'lfs', 'merged': True}
 
     def pyxet_new_upload(self, filepath: str):
         self._xethub_upload(filepath)
-        return {'function': 'pyxet new upload', 'tech': 'xethub','merged': False}
+        return {'function': 'pyxet new upload', 'tech': 'xethub', 'merged': False}
 
     def pyxet_merged_upload(self, filepath: str):
         self._xethub_upload(filepath)
@@ -96,7 +96,7 @@ class Helper:
         filename = os.path.basename(filepath)
         targetpath = os.path.join(repo, filename)
         shutil.copyfile(filepath, targetpath)
-        return {'function': 'copy file'}
+        return {'function': 'copy_file', 'filepath': filepath, 'tech': repo}
 
     def get_file_size(self, filepath):
         return self.to_mb(os.path.getsize(filepath))
@@ -104,7 +104,6 @@ class Helper:
     @staticmethod
     def to_mb(bytes: int):
         return bytes / (1024 * 1024)
-
 
     def _dvc_push(self):
         command = """
@@ -179,7 +178,7 @@ class Helper:
                         COPY (SELECT * FROM read_parquet(['{new_filepath}', '{merged_filepath}'])) TO '{merged_filepath}' (FORMAT 'parquet');
                         """
             )
-        return merged_filepath
+        return {'filename': new_filepath}
 
     def git_exists(self, path: str, cwd: str):
         return self.run(f"git cat-file -e origin:{path}", repo=cwd).returncode == 0
