@@ -48,7 +48,7 @@ def benchmark_random(iterations: int = 100):
                          helper.pyxet_new_upload,
                          helper.lakefs_new_upload):
                 try:
-                    tracker.track_function(func, filepath=filepath)
+                    tracker.track_function(func, args=[filepath])
                 except KeyboardInterrupt:
                     stop = True
         except KeyboardInterrupt as e:
@@ -77,7 +77,7 @@ def benchmark_append(iterations: int = 100):
     shutil.copyfile(original, filepath)
     filename = path.basename(filepath)
     for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-        tracker.track_function(helper.copy_file, filepath=filepath, repo=repo)
+        tracker.track_function(helper.copy_file, args=[filepath, repo])
 
     stop = False  # for graceful exit
     for step in range(iterations):
@@ -99,7 +99,7 @@ def benchmark_append(iterations: int = 100):
                          helper.pyxet_merged_upload,
                          helper.lakefs_merged_upload):
                 try:
-                    tracker.track_function(func, filepath=filepath)
+                    tracker.track_function(func, args=[filepath])
                 except KeyboardInterrupt:
                     stop = True
         except KeyboardInterrupt as e:
@@ -127,14 +127,14 @@ def benchmark_taxi(iterations: int = 20):
              "filepath": filepath,
              'file_bytes': helper.get_file_size(filepath),
              'merged': False,
-             'tech': Helper.M1, })
+             'tech': Helper.M1})
 
-        tracker.track_function(helper.merge_files, new_filepath=filepath, merged_filepath=merged_filepath)
+        tracker.track_function(helper.merge_files, args=[filepath, merged_filepath])
 
         # copy locally
         for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-            tracker.track_function(helper.copy_file, filepath=filepath, repo=repo)
-            tracker.track_function(helper.copy_file, filepath=merged_filepath, repo=repo)
+            tracker.track_function(helper.copy_file, args=[filepath, repo])
+            tracker.track_function(helper.copy_file, args=[merged_filepath, repo])
 
         for func, tech in (helper.gitxet_new_upload,
                            helper.dvc_new_upload,
@@ -144,7 +144,7 @@ def benchmark_taxi(iterations: int = 20):
                            helper.pyxet_new_upload,
                            helper.lakefs_new_upload):
             try:
-                tracker.track_function(func, filepath=filepath)
+                tracker.track_function(func, args=[filepath])
             except KeyboardInterrupt:
                 stop = True
         tracker.set_params({'merged': True,
@@ -159,7 +159,7 @@ def benchmark_taxi(iterations: int = 20):
                            helper.s3_merged_upload,
                            helper.lakefs_merged_upload):
             try:
-                tracker.track_function(func, filepath=filepath)
+                tracker.track_function(func, args=[filepath])
             except KeyboardInterrupt:
                 stop = True
 
