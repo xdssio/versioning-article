@@ -164,12 +164,17 @@ xethub-py/
 xethub-git/
 lfs-s3/
 lfs-github/
-taxi/
-blog/
-mock/
 logs/
-numeric/
 
 lfs-server/.env
 *.pyc
+
+# datasets
+numeric/
+random/
+datasets/
+blog/
+taxi/
+mock/
+
 tests/mock/
