@@ -181,7 +181,7 @@ def benchmark_numeric(iterations: int = 20):
     filepath = 'numeric/numeric.csv'
     xet_path = 'xet://xdssio/xethub-py/main/numeric.csv'
     s3_path = 's3:///versioning-article/s3/numeric.csv'
-    tracker = Tracker(OUTPUT_DB, verbose=False,
+    tracker = Tracker(OUTPUT_DB, verbose=False,log_system_params=False,
                       params={'step': -1, 'workflow': 'numeric',
                               'n_rows_add': n_rows_add,
                               'start_rows': start_rows,
@@ -204,6 +204,7 @@ def benchmark_numeric(iterations: int = 20):
                           (helper.xet_copy_time, [filepath, xet_path]),
                           (helper.lakefs_copy_time, [filepath])]:
             try:
+                logger.info(f"Running {fuc.__name__}")
                 tracker.track(fuc, args=args)
                 logger.debug(tracker.last)
             except KeyboardInterrupt:
