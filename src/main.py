@@ -201,8 +201,8 @@ def benchmark_numeric(iterations: int = 20):
                             'is_merged': True})
 
         for fuc, args in [(helper.s3_copy_time, [filepath, s3_path]),
-                            (helper.xet_copy_time, [filepath, xet_path]),
-                            (helper.lakefs_merged_upload, [filepath])]:
+                          (helper.xet_copy_time, [filepath, xet_path]),
+                          (helper.lakefs_copy_time, [filepath])]:
             try:
                 tracker.track(fuc, args=args)
                 logger.debug(tracker.last)
@@ -211,8 +211,6 @@ def benchmark_numeric(iterations: int = 20):
 
         generator.append(filepath, n_rows_add)
     os.remove(filepath)
-
-
 
 
 if __name__ == '__main__':

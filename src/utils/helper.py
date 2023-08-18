@@ -102,9 +102,9 @@ class Helper:
         start_time = time.time()
         self.fs_s3.open(s3_path, 'wb').write(data)
         end_time = time.time()
-        return {'function': 's3 copy time', 'tech': 's3', 'merged': True, 's3 time': end_time - start_time}
+        return {'function': 's3 copy time', 'tech': 's3', 'merged': True, 'upload time': str(end_time - start_time)}
 
-    def xet_copy_time(self, local_path:str, xet_path:str):
+    def xet_copy_time(self, local_path: str, xet_path: str):
         with fsspec.open(local_path, 'rb') as f1:
             data = f1.read()
         start_time = time.time()
@@ -113,7 +113,15 @@ class Helper:
                 f2.write(data)
             f2.close()
         end_time = time.time()
-        return {'function': 'xet copy time', 'tech': 'xethub', 'merged': True, 'xet time': end_time - start_time}
+        return {'function': 'xet copy time', 'tech': 'xethub', 'merged': True,
+                'upload time': str(end_time - start_time)}
+
+    def lakefs_copy_time(self, filepath: str):
+        start_time = time.time()
+        self._lakefs_upload(filepath)
+        end_time = time.time()
+        return {'function': 'lakefs merged upload', 'tech': 'lakefs', 'merged': True,
+                'upload time': str(end_time - start_time)}
 
     @staticmethod
     def copy_file(filepath: str, repo: str):
