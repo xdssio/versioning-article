@@ -168,6 +168,8 @@ taxi/
 blog/
 mock/
 logs/
+numeric/
+
 lfs-server/.env
 *.pyc
 tests/mock/
