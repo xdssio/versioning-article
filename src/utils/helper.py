@@ -6,6 +6,9 @@ import pyxet
 import duckdb
 import os.path as path
 import boto3
+import fsspec
+import time
+import s3fs
 
 
 class Helper:
@@ -22,10 +25,11 @@ class Helper:
 
     def __init__(self):
 
-        self.fs = pyxet.XetFS()
         self.s3 = boto3.client('s3')
         self.xet_pyxet_repo = self._get_xet_repo(Helper.XETHUB_PY)
         self.xet_git_repo = self._get_xet_repo(Helper.XETHUB_GIT)
+        self.fs_xet = pyxet.XetFS()
+        self.fs_s3 = s3fs.S3FileSystem(anon=False)
 
     @staticmethod
     def _get_xet_repo(path: str):
@@ -90,6 +94,26 @@ class Helper:
     def s3_merged_upload(self, filepath: str):
         self._s3_upload(filepath)
         return {'function': 's3 merged upload', 'tech': 's3', 'merged': True}
+
+    def s3_copy_time(self, local_path: str, s3_path: str):
+
+        with fsspec.open(local_path, 'rb') as f1:
+            data = f1.read()
+        start_time = time.time()
+        self.fs_s3.open(s3_path, 'wb').write(data)
+        end_time = time.time()
+        return {'function': 's3 copy time', 'tech': 's3', 'merged': True, 's3 time': end_time - start_time}
+
+    def xet_copy_time(self, local_path:str, xet_path:str):
+        with fsspec.open(local_path, 'rb') as f1:
+            data = f1.read()
+        start_time = time.time()
+        with self.fs_xet.transaction:
+            with self.fs_xet.open(xet_path, 'wb') as f2:
+                f2.write(data)
+            f2.close()
+        end_time = time.time()
+        return {'function': 'xet copy time', 'tech': 'xethub', 'merged': True, 'xet time': end_time - start_time}
 
     @staticmethod
     def copy_file(filepath: str, repo: str):
@@ -159,8 +183,8 @@ class Helper:
     def _xethub_upload(self, filepath: str, pyxet_api: bool = True):
         filename = os.path.basename(filepath)
         if pyxet_api:
-            with self.fs.transaction:
-                self.fs.put(filepath, f"{self.xet_pyxet_repo}/{filename}")
+            with self.fs_xet.transaction:
+                self.fs_xet.put(filepath, f"{self.xet_pyxet_repo}/{filename}")
         else:
             self._git_upload(filepath, Helper.XETHUB_GIT)
         return pyxet_api
@@ -192,11 +216,11 @@ class Helper:
         self.run(command, repo=cwd)
 
     def xet_ls(self, xet_repo: str):
-        return self.fs.ls(xet_repo, detail=False)
+        return self.fs_xet.ls(xet_repo, detail=False)
 
     def xet_remove(self, filename: str, xet_repo: str):
-        with self.fs.transaction:
-            self.fs.rm(f"{xet_repo}/{filename}")
+        with self.fs_xet.transaction:
+            self.fs_xet.rm(f"{xet_repo}/{filename}")
 
     def _lakefs_upload(self, filepath):
         self.run(f"lakectl fs upload -s {filepath} lakefs://versioning-article/main/{filepath}")

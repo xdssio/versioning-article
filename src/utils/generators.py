@@ -65,7 +65,24 @@ class DataFrameGenerator:
             self.generate_data(num_rows).to_parquet(f"{target}/{filename}.parquet")
 
 
-class BlogRowsGenerator:
+class NumericDataGenerator:
+    def __init__(self, cols: int):
+        self.cols = cols
+
+    def generate_data(self, rows: int = None, cols: int = None):
+        if cols:
+            self.cols = cols
+        np.random.seed(0)
+        data = np.random.rand(rows, self.cols)
+        return pd.DataFrame(data)
+
+    def append(self, filename: str, rows: int = None):
+        data = np.random.rand(rows, self.cols)
+        df = pd.DataFrame(data)
+        df.to_csv(filename, mode='a', header=False, index=False)
+
+
+class BlogDataGenerator:
     def __init__(self,
                  counter: int,
                  genders: typing.List[str],
@@ -97,19 +114,22 @@ class BlogRowsGenerator:
     def generate_age(self):
         return randint(0, 100)
 
-    def generate_row(self):
-        new_row = {'id': self.counter,
-                   'gender': self.generate_gender(),
-                   'age': self.generate_age(),
-                   'topic': self.generate_topic(),
-                   'signs': self.generate_sign(),
-                   'date': self.date.strftime('%d,%B,%Y'),
-                   'text': self.generate_text()
-                   }
-        self.counter += 1
-        self.date = self.date + pd.DateOffset(hours=1)
-        return pd.DataFrame([new_row])
+    def generate_data(self, rows: int = 1):
+        data = []
+        for i in range(rows):
+            new_row = {'id': self.counter,
+                       'gender': self.generate_gender(),
+                       'age': self.generate_age(),
+                       'topic': self.generate_topic(),
+                       'signs': self.generate_sign(),
+                       'date': self.date.strftime('%d,%B,%Y'),
+                       'text': self.generate_text()
+                       }
+            self.counter += 1
+            self.date = self.date + pd.DateOffset(hours=1)
+            data.append(new_row)
+        return pd.DataFrame(data)
 
-    def append_mock_row(self, filepath):
-        row = self.generate_row()
+    def append(self, filepath, rows: int = 1):
+        row = self.generate_data(rows)
         row.to_csv(filepath, mode='a', header=False, index=False)

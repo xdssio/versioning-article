@@ -11,8 +11,12 @@ from loguru import logger
 import pandas as pd
 from src.utils.metrics import MetricsHelper
 from src.utils.helper import Helper
-from src.utils.generators import BlogRowsGenerator, DataFrameGenerator
+from src.utils.generators import BlogDataGenerator, DataFrameGenerator, NumericDataGenerator
 from xetrack import Tracker
+import pyxet
+import subprocess
+
+gitxet_version = subprocess.run("git xet --version", shell=True, capture_output=True).stdout.decode('utf-8')
 
 logger.add("logs/{time}.log")
 helper = Helper()
@@ -48,7 +52,7 @@ def benchmark_random(iterations: int = 100):
                          helper.pyxet_new_upload,
                          helper.lakefs_new_upload):
                 try:
-                    tracker.track_function(func, args=[filepath])
+                    tracker.track(func, args=[filepath])
                 except KeyboardInterrupt:
                     stop = True
         except KeyboardInterrupt as e:
@@ -65,10 +69,12 @@ def benchmark_append(iterations: int = 100):
                               'step': -1,
                               'filename': appended_filepath,
                               'tech': Helper.M1,
-                              'workflow': 'append'})
+                              'workflow': 'append',
+                              'pyxet_version': pyxet.__version__,
+                              'gitxet_version': gitxet_version, })
 
     data = pd.read_csv(original, nrows=68200)
-    generator = BlogRowsGenerator(counter=data['id'].max(),
+    generator = BlogDataGenerator(counter=data['id'].max(),
                                   date=data['date'].max(),
                                   genders=list(set(data['gender'])),
                                   topics=list(set(data['topic'])),
@@ -77,7 +83,7 @@ def benchmark_append(iterations: int = 100):
     shutil.copyfile(original, filepath)
     filename = path.basename(filepath)
     for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-        tracker.track_function(helper.copy_file, args=[filepath, repo])
+        tracker.track(helper.copy_file, args=[filepath, repo])
 
     stop = False  # for graceful exit
     for step in range(iterations):
@@ -89,17 +95,19 @@ def benchmark_append(iterations: int = 100):
                                 'file_bytes': helper.get_file_size(filepath),
                                 'is_merged': True})
 
-            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
+            for repo in ['blog', helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
                 generator.append_mock_row(os.path.join(repo, filename))
             for func in (helper.gitxet_merged_upload,
+                         helper.lakefs_merged_upload,
                          helper.dvc_merged_upload,
                          helper.lfs_s3_merged_upload,
                          helper.s3_merged_upload,
-                         helper.lfs_git_merged_upload,
                          helper.pyxet_merged_upload,
-                         helper.lakefs_merged_upload):
+                         helper.lfs_git_merged_upload,
+                         ):
                 try:
-                    tracker.track_function(func, args=[filepath])
+                    logger.info(f"Running {func.__name__}")
+                    tracker.track(func, args=[filepath])
                 except KeyboardInterrupt:
                     stop = True
         except KeyboardInterrupt as e:
@@ -129,22 +137,23 @@ def benchmark_taxi(iterations: int = 20):
              'merged': False,
              'tech': Helper.M1})
 
-        tracker.track_function(helper.merge_files, args=[filepath, merged_filepath])
+        tracker.track(helper.merge_files, args=[filepath, merged_filepath])
 
         # copy locally
         for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-            tracker.track_function(helper.copy_file, args=[filepath, repo])
-            tracker.track_function(helper.copy_file, args=[merged_filepath, repo])
+            tracker.track(helper.copy_file, args=[filepath, repo])
+            tracker.track(helper.copy_file, args=[merged_filepath, repo])
 
-        for func, tech in (helper.gitxet_new_upload,
-                           helper.dvc_new_upload,
+        for func, tech in (helper.dvc_new_upload,
+                           helper.lakefs_new_upload,
                            helper.lfs_s3_new_upload,
                            helper.s3_new_upload,
                            helper.lfs_git_new_upload,
+                           helper.gitxet_new_upload,
                            helper.pyxet_new_upload,
-                           helper.lakefs_new_upload):
+                           ):
             try:
-                tracker.track_function(func, args=[filepath])
+                tracker.track(func, args=[filepath])
             except KeyboardInterrupt:
                 stop = True
         tracker.set_params({'merged': True,
@@ -159,14 +168,56 @@ def benchmark_taxi(iterations: int = 20):
                            helper.s3_merged_upload,
                            helper.lakefs_merged_upload):
             try:
-                tracker.track_function(func, args=[filepath])
+                tracker.track(func, args=[filepath])
             except KeyboardInterrupt:
                 stop = True
 
 
+def benchmark_numeric(iterations: int = 20):
+    logger.info(f"benchmark - numeric - {iterations} iterations")
+    n_rows_add = 100000
+    start_rows = 1000000
+    columns = 10
+    filepath = 'numeric/numeric.csv'
+    xet_path = 'xet://xdssio/xethub-py/main/numeric.csv'
+    s3_path = 's3:///versioning-article/s3/numeric.csv'
+    tracker = Tracker(OUTPUT_DB, verbose=False,
+                      params={'step': -1, 'workflow': 'numeric',
+                              'n_rows_add': n_rows_add,
+                              'start_rows': start_rows,
+                              'columns': columns,
+                              'filepath': filepath,
+                              })
+    generator = NumericDataGenerator(cols=columns)
+    df = generator.generate_data(start_rows)
+    df.to_csv(filepath, index=False)
+
+    stop = False  # for graceful exit
+    for step in tqdm(range(iterations)):
+        if stop:
+            break
+        tracker.set_params({'step': step,
+                            'file_bytes': helper.get_file_size(filepath),
+                            'is_merged': True})
+
+        for fuc, args in [(helper.s3_copy_time, [filepath, s3_path]),
+                            (helper.xet_copy_time, [filepath, xet_path]),
+                            (helper.lakefs_merged_upload, [filepath])]:
+            try:
+                tracker.track(fuc, args=args)
+                logger.debug(tracker.last)
+            except KeyboardInterrupt:
+                stop = True
+
+        generator.append(filepath, n_rows_add)
+    os.remove(filepath)
+
+
+
+
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
-    p.add_argument('workflow', choices=['append', 'taxi', 'random'], help='The experiment to run')
+    p.add_argument('workflow', choices=['append', 'taxi', 'random', 'numeric'], help='The experiment to run')
     p.add_argument('-i', '--iterations', type=int, help='Number of iterations to run', default=10)
     p.add_argument('-u',
                    '--upload', default=False, action='store_true',
@@ -182,6 +233,8 @@ if __name__ == '__main__':
         command = f"benchmark_taxi({iterations})"
     elif args.workflow == 'random':
         command = f"benchmark_random({iterations})"
+    elif args.workflow == 'numeric':
+        command = f"benchmark_numeric({iterations})"
     else:
         raise ValueError(f"Unknown experiment: {args.workflow}")
 

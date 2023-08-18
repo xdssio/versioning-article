@@ -135,16 +135,22 @@ Setup:
 3. Copy credentials ands save to `~/.lakefs.yaml`.
 4. Create a repository and connect to S3 in the UI
 
-## Run
+# Run
 
-### Prepare docker servers
+## Prepare docker servers
 
 ```bash
 # Terminal 1
 (cd lfs-server && docker-compose up)
-# Terminal 2 
+# Terminal 2
 docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
+
 ```
+## Workflows
+### Numeric non-git
+export PYTHONPATH="$(pwd):$PYTHONPATH"
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/benchmark.log  python src/main.py numeric -i=20 --show --upload
+
 
 ### Taxi
 
@@ -158,9 +164,9 @@ python src/main.py --dir=data --show --upload
 
 ```bash
 export XET_LOG_LEVEL=debug
-export XET_LOG_PATH=logs/xethub.log
+export XET_LOG_PATH=/Users/yonatanalexander/development/xethub/versioning-article/logs/xethub.log
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/main.py blog -i=10 --show --upload
+python src/main.py append -i=30 --show --upload
 ```
 
 ### Mock data

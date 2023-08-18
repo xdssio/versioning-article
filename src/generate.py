@@ -1,5 +1,5 @@
 import argparse
-from utils import DataFrameGenerator
+from utils.generators import DataFrameGenerator
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
