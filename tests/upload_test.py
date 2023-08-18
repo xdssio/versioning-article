@@ -1,7 +1,7 @@
 import time
 
 from src.utils.helper import Helper
-from src.utils.generators import DataFrameGenerator
+from src.utils.generators import DataFrameGenerator, NumericDataGenerator
 import pytest
 
 filename = '0.parquet'
@@ -69,3 +69,13 @@ def test_lakefs_upload():
     start_count = helper.s3_file_count(helper.LAKEFS)
     helper._lakefs_upload(filepath)
     assert helper.s3_file_count(helper.LAKEFS) == start_count + 1
+
+
+def test_copy_pyxet():
+    filepath = "tests/mock/numeric.csv"
+    xetpath = "xet://xdssio/xethub-py/main/mock/numeric.csv"
+    generator = NumericDataGenerator(cols=10)
+    df = generator.generate_data(100)
+    df.to_csv(filepath, index=False)
+
+    results = helper.xet_copy_time(filepath, xetpath)

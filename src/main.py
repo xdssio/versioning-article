@@ -31,7 +31,10 @@ def benchmark_random(iterations: int = 100):
     filepath = f"random/{filename}"
     tracker = Tracker(OUTPUT_DB, verbose=False,
                       params={'merged': True, 'step': -1, 'filename': filepath, 'tech': Helper.M1,
-                              'workflow': 'random'})
+                              'workflow': 'random',
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version
+                              })
     generator = DataFrameGenerator(num_rows=10000)  # ~ 1.2MB
     for step in tqdm(range(iterations)):
         try:
@@ -70,8 +73,9 @@ def benchmark_append(iterations: int = 100):
                               'filename': appended_filepath,
                               'tech': Helper.M1,
                               'workflow': 'append',
-                              'pyxet_version': pyxet.__version__,
-                              'gitxet_version': gitxet_version, })
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version
+                              })
 
     data = pd.read_csv(original, nrows=68200)
     generator = BlogDataGenerator(counter=data['id'].max(),
@@ -122,9 +126,14 @@ def benchmark_taxi(iterations: int = 20):
     if merged_filepath in files:
         file_count -= 1
     logger.info(f"benchmark - taxi : {file_count} files")
-    tracker = Tracker(OUTPUT_DB, verbose=False, params={'step': -1,
-                                                        'file_count': file_count,
-                                                        'workflow': 'taxi'})
+    tracker = Tracker(OUTPUT_DB,
+                      verbose=False,
+                      params={'step': -1,
+                              'file_count': file_count,
+                              'workflow': 'taxi',
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version
+                              })
 
     stop = False  # for graceful exit
     for step, filepath in tqdm(enumerate(files)):
@@ -181,15 +190,22 @@ def benchmark_numeric(iterations: int = 20):
     filepath = 'numeric/numeric.csv'
     xet_path = 'xet://xdssio/xethub-py/main/numeric.csv'
     s3_path = 's3:///versioning-article/s3/numeric.csv'
-    tracker = Tracker(OUTPUT_DB, verbose=False,log_system_params=False,
+    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=False,
                       params={'step': -1, 'workflow': 'numeric',
                               'n_rows_add': n_rows_add,
                               'start_rows': start_rows,
                               'columns': columns,
                               'filepath': filepath,
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version
                               })
+
     generator = NumericDataGenerator(cols=columns)
     df = generator.generate_data(start_rows)
+    directory_path = os.path.dirname(filepath)
+    if os.path.exists(directory_path):
+        shutil.rmtree(directory_path)
+    os.makedirs(directory_path)
     df.to_csv(filepath, index=False)
 
     stop = False  # for graceful exit
