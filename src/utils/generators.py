@@ -72,7 +72,7 @@ class NumericDataGenerator:
     def generate_data(self, rows: int = None, cols: int = None):
         if cols:
             self.cols = cols
-        np.random.seed(0)
+        np.random.seed(1)
         data = np.random.rand(rows, self.cols)
         return pd.DataFrame(data)
 
@@ -80,6 +80,13 @@ class NumericDataGenerator:
         data = np.random.rand(rows, self.cols)
         df = pd.DataFrame(data)
         df.to_csv(filename, mode='a', header=False, index=False)
+
+    def to_csv(self, df, filepath):
+        directory_path = os.path.dirname(filepath)
+        if os.path.exists(directory_path):
+            shutil.rmtree(directory_path)
+        os.makedirs(directory_path)
+        df.to_csv(filepath, index=False)
 
 
 class BlogDataGenerator:

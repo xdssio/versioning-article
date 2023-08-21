@@ -39,61 +39,33 @@ class Helper:
         origin = origins.split("\n")[0].split("\t")[1].split(" ")[0].split("/")
         return f"xet://{origin[-2]}/{origin[-1].replace('.git', '')}/main"
 
-    def dvc_new_upload(self, filepath: str):
+    def dvc_upload(self, filepath: str):
         self._dvc_upload(filepath)
         return {'function': 'dvc new upload', 'tech': 'dvc', 'merged': False}
 
-    def dvc_merged_upload(self, filepath: str):
-        self._dvc_upload(filepath)
-        return {'function': 'dvc merged upload', 'tech': 'dvc', 'merged': True}
-
-    def lfs_s3_new_upload(self, filepath: str):
+    def lfs_s3_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_S3)
         return {'function': 'lfs s3 new upload', 'tech': 'lfs', 'merged': False}
 
-    def lfs_s3_merged_upload(self, filepath: str):
-        self._lfs_upload(filepath, Helper.LFS_S3)
-        return {'function': 'lfs s3 merged upload', 'tech': 'lfs', 'merged': True}
-
-    def lfs_git_new_upload(self, filepath: str):
+    def lfs_git_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_GITHUB)
         return {'function': 'lfs git new upload', 'tech': 'lfs', 'merged': False}
 
-    def lfs_git_merged_upload(self, filepath: str):
-        self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git merged upload', 'tech': 'lfs', 'merged': True}
-
-    def pyxet_new_upload(self, filepath: str):
+    def pyxet_upload(self, filepath: str):
         self._xethub_upload(filepath)
         return {'function': 'pyxet new upload', 'tech': 'xethub', 'merged': False}
 
-    def pyxet_merged_upload(self, filepath: str):
-        self._xethub_upload(filepath)
-        return {'function': 'pyxet merged upload', 'tech': 'xethub', 'merged': True}
-
-    def gitxet_new_upload(self, filepath: str):
+    def gitxet_upload(self, filepath: str):
         self._xethub_upload(filepath, pyxet_api=False)
         return {'function': 'git-xet new upload', 'tech': 'xethub', 'merged': False}
 
-    def gitxet_merged_upload(self, filepath: str):
-        self._xethub_upload(filepath, pyxet_api=False)
-        return {'function': 'git-xet merged upload', 'tech': 'xethub', 'merged': True}
-
-    def lakefs_new_upload(self, filepath: str):
+    def lakefs_upload(self, filepath: str):
         self._lakefs_upload(filepath)
         return {'function': 'lakefs new upload', 'tech': 'lakefs', 'merged': False}
 
-    def lakefs_merged_upload(self, filepath: str):
-        self._lakefs_upload(filepath)
-        return {'function': 'lakefs merged upload', 'tech': 'lakefs', 'merged': True}
-
-    def s3_new_upload(self, filepath: str):
+    def s3_upload(self, filepath: str):
         self._s3_upload(filepath)
         return {'function': 's3 new upload', 'tech': 's3', 'merged': False}
-
-    def s3_merged_upload(self, filepath: str):
-        self._s3_upload(filepath)
-        return {'function': 's3 merged upload', 'tech': 's3', 'merged': True}
 
     def s3_copy_time(self, local_path: str, s3_path: str):
 
@@ -104,14 +76,14 @@ class Helper:
         end_time = time.time()
         return {'function': 's3 copy time', 'tech': 's3', 'merged': True, 'upload_time': end_time - start_time}
 
-    def xet_copy_time(self, local_path: str, xet_path: str):
+    def xet_copy_time(self, filepath: str, xetpath: str):
         xet_fs = pyxet.XetFS()
-        with fsspec.open(local_path, 'rb') as f1:
+        with fsspec.open(filepath, 'rb') as f1:
             data = f1.read()
         print(f"Read data, size = {len(data)}")
         start_time = time.time()
         with xet_fs.transaction:
-            with xet_fs.open(xet_path, 'wb') as f2:
+            with xet_fs.open(xetpath, 'wb') as f2:
                 f2.write(data)
             f2.close()
         end_time = time.time()
@@ -130,7 +102,7 @@ class Helper:
         filename = os.path.basename(filepath)
         targetpath = os.path.join(repo, filename)
         shutil.copyfile(filepath, targetpath)
-        return {'function': 'copy_file', 'filepath': filepath, 'tech': repo}
+        return {'function': 'copy_file', 'filepath': filepath, 'tech': Helper.M1}
 
     def get_file_size(self, filepath):
         return self.to_mb(os.path.getsize(filepath))
@@ -212,7 +184,7 @@ class Helper:
                         COPY (SELECT * FROM read_parquet(['{new_filepath}', '{merged_filepath}'])) TO '{merged_filepath}' (FORMAT 'parquet');
                         """
             )
-        return {'filename': new_filepath}
+        return {'filename': new_filepath, 'tech': Helper.M1}
 
     def git_exists(self, path: str, cwd: str):
         return self.run(f"git cat-file -e origin:{path}", repo=cwd).returncode == 0

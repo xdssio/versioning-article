@@ -149,7 +149,7 @@ docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCE
 ## Workflows
 ### Numeric non-git
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/benchmark.log  python src/main.py numeric -i=20 --show --upload
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log  python src/main.py numeric -i=20 --show --upload
 
 
 ### Taxi
@@ -163,10 +163,8 @@ python src/main.py --dir=data --show --upload
 ### Blog csv append
 
 ```bash
-export XET_LOG_LEVEL=debug
-export XET_LOG_PATH=/Users/yonatanalexander/development/xethub/versioning-article/logs/xethub.log
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/main.py append -i=30 --show --upload
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log python src/main.py append -i=30 --show --upload
 ```
 
 ### Mock data

@@ -22,107 +22,100 @@ logger.add("logs/{time}.log")
 helper = Helper()
 metrics = MetricsHelper()
 OUTPUT_DB = 'output/stats.db'
+copy_tech_repos = [Helper.XETHUB_GIT, Helper.LFS_GITHUB, Helper.LFS_S3, Helper.DVC]
+
+upload_functions = (helper.gitxet_upload,
+                    helper.lakefs_upload,
+                    helper.dvc_upload,
+                    helper.lfs_s3_upload,
+                    helper.s3_upload,
+                    helper.pyxet_upload,
+                    helper.lfs_git_upload,
+                    )
+
+
+def copy_to_repos(filepath):
+    for repo in copy_tech_repos:
+        helper.copy_file(filepath, repo)
+
+
+def run_functions(tracker, filepath):
+    for func in upload_functions:
+        logger.info(f"Running {func.__name__}")
+        tracker.track(func, args=[filepath])
 
 
 def benchmark_random(iterations: int = 100):
     logger.info(f"benchmark - random - {iterations} files")
-    stop = False  # for graceful exit
     filename = f"data.parquet"
     filepath = f"random/{filename}"
     tracker = Tracker(OUTPUT_DB, verbose=False,
-                      params={'merged': True, 'step': -1, 'filename': filepath, 'tech': Helper.M1,
+                      params={'merged': False,
+                              'filename': filepath,
                               'workflow': 'random',
                               'pyxet': pyxet.__version__,
                               'gitxet': gitxet_version
                               })
     generator = DataFrameGenerator(num_rows=10000)  # ~ 1.2MB
     for step in tqdm(range(iterations)):
-        try:
-            if stop:
-                break
-            df = generator.generate_data()
-            df.to_parquet(filepath)
-            tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
+        df = generator.generate_data()
+        df.to_parquet(filepath)
+        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
+        copy_to_repos(filepath)
+        run_functions(tracker, filepath)
 
-            for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-                new_filepath = os.path.join(repo, filename)
-                df.to_parquet(new_filepath, index=False)
-            for func in (helper.gitxet_new_upload,
-                         helper.dvc_new_upload,
-                         helper.lfs_s3_new_upload,
-                         helper.s3_new_upload,
-                         helper.lfs_git_new_upload,
-                         helper.pyxet_new_upload,
-                         helper.lakefs_new_upload):
-                try:
-                    tracker.track(func, args=[filepath])
-                except KeyboardInterrupt:
-                    stop = True
-        except KeyboardInterrupt as e:
-            logger.info(f"KeyboardInterrupt: {e}")
-            break
+    logger.info(f"Cleanup...")
+    for repo in copy_tech_repos:
+        os.remove(f"{repo}/{filename}")
 
 
 def benchmark_append(iterations: int = 100):
-    logger.info(f"benchmark - blog - {iterations} iterations")
-    original = 'blog/original.csv'
-    appended_filepath = filepath = 'blog/blog.csv'
+    logger.info(f"benchmark append csv - blog - {iterations} iterations")
+    data_dir = 'blog'
+    original = f"{data_dir}/original.csv"
+    filename = 'appended.csv'
+    n_rows_add = 1
+    start_rows = 68200
+    appended_filepath = filepath = f"{data_dir}/{filename}"
     tracker = Tracker(OUTPUT_DB, verbose=False,
-                      params={'merged': False,
-                              'step': -1,
+                      params={'merged': True,
                               'filename': appended_filepath,
-                              'tech': Helper.M1,
                               'workflow': 'append',
                               'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version
+                              'gitxet': gitxet_version,
+                              'file_bytes': helper.get_file_size(original),
+                              'n_rows_add': n_rows_add,
+                              'start_rows': start_rows,
                               })
 
-    data = pd.read_csv(original, nrows=68200)
+    data = pd.read_csv(original, nrows=start_rows)
     generator = BlogDataGenerator(counter=data['id'].max(),
                                   date=data['date'].max(),
                                   genders=list(set(data['gender'])),
                                   topics=list(set(data['topic'])),
                                   signs=list(set(data['sign'])),
                                   )
-    shutil.copyfile(original, filepath)
-    filename = path.basename(filepath)
-    for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-        tracker.track(helper.copy_file, args=[filepath, repo])
+    shutil.copyfile(original, filepath)  # copy original file
+    copy_to_repos(filepath)  # copy to repos
 
-    stop = False  # for graceful exit
     for step in range(iterations):
-        try:
-            if stop:
-                break
-            tracker.set_params({'filename': filename,
-                                'step': step,
-                                'file_bytes': helper.get_file_size(filepath),
-                                'is_merged': True})
+        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
+        if step > 0:
+            for repo in [data_dir] + copy_tech_repos:
+                generator.append(os.path.join(repo, filename), n_rows_add)
+        run_functions(tracker, filepath)  # run functions on a loop
 
-            for repo in ['blog', helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-                generator.append_mock_row(os.path.join(repo, filename))
-            for func in (helper.gitxet_merged_upload,
-                         helper.lakefs_merged_upload,
-                         helper.dvc_merged_upload,
-                         helper.lfs_s3_merged_upload,
-                         helper.s3_merged_upload,
-                         helper.pyxet_merged_upload,
-                         helper.lfs_git_merged_upload,
-                         ):
-                try:
-                    logger.info(f"Running {func.__name__}")
-                    tracker.track(func, args=[filepath])
-                except KeyboardInterrupt:
-                    stop = True
-        except KeyboardInterrupt as e:
-            logger.info(f"KeyboardInterrupt: {e}")
-            break
+    logger.info(f"Cleanup...")
+    for repo in [data_dir] + copy_tech_repos:
+        os.remove(os.path.join(repo, filename))
 
 
-def benchmark_taxi(iterations: int = 20):
-    files = sorted(glob(f"taxi/*.parquet"))
+def benchmark_taxi_merged():
+    data_dir = 'taxi'
+    files = sorted(glob(f"{data_dir}/*.parquet"))
     file_count = len(files)
-    merged_filepath = path.join('taxi', 'merged.parquet')
+    merged_filename = 'merged.parquet'
+    merged_filepath = path.join('taxi', merged_filename)
     if merged_filepath in files:
         file_count -= 1
     logger.info(f"benchmark - taxi : {file_count} files")
@@ -130,56 +123,50 @@ def benchmark_taxi(iterations: int = 20):
                       verbose=False,
                       params={'step': -1,
                               'file_count': file_count,
-                              'workflow': 'taxi',
+                              'workflow': 'taxi-merged',
                               'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version
+                              'gitxet': gitxet_version,
+                              'merged': True,
                               })
 
-    stop = False  # for graceful exit
     for step, filepath in tqdm(enumerate(files)):
-        if step == iterations or stop:
-            break
-        tracker.set_params(
-            {'step': step,
-             "filepath": filepath,
-             'file_bytes': helper.get_file_size(filepath),
-             'merged': False,
-             'tech': Helper.M1})
-
+        tracker.set_params({'step': step, "filepath": filepath, 'file_bytes': helper.get_file_size(filepath)})
         tracker.track(helper.merge_files, args=[filepath, merged_filepath])
+        copy_to_repos(merged_filepath)
+        run_functions(tracker, merged_filepath)
 
+    logger.info(f"Cleanup...")
+    for repo in ['taxi'] + copy_tech_repos:
+        os.remove(os.path.join(repo, merged_filename))
+
+
+def benchmark_taxi_new():
+    data_dir = 'taxi'
+    files = sorted(glob(f"{data_dir}/*.parquet"))
+    file_count = len(files)
+    logger.info(f"benchmark - taxi upload: {file_count} files")
+    tracker = Tracker(OUTPUT_DB,
+                      verbose=False,
+                      params={'step': -1,
+                              'file_count': file_count,
+                              'workflow': 'taxi upload',
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version,
+                              'merged': False,
+                              })
+
+    for step, filepath in tqdm(enumerate(files)):
+        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath), 'filepath': filepath})
         # copy locally
-        for repo in [helper.DVC, helper.LFS_S3, Helper.LFS_GITHUB, Helper.XETHUB_GIT]:
-            tracker.track(helper.copy_file, args=[filepath, repo])
-            tracker.track(helper.copy_file, args=[merged_filepath, repo])
+        copy_to_repos(filepath)
+        run_functions(tracker, filepath)
 
-        for func, tech in (helper.dvc_new_upload,
-                           helper.lakefs_new_upload,
-                           helper.lfs_s3_new_upload,
-                           helper.s3_new_upload,
-                           helper.lfs_git_new_upload,
-                           helper.gitxet_new_upload,
-                           helper.pyxet_new_upload,
-                           ):
-            try:
-                tracker.track(func, args=[filepath])
-            except KeyboardInterrupt:
-                stop = True
-        tracker.set_params({'merged': True,
-                            'filepath': merged_filepath,
-                            'file_bytes': helper.get_file_size(merged_filepath)})
-
-        for func, tech in (helper.pyxet_merged_upload,
-                           helper.dvc_merged_upload,
-                           helper.lfs_s3_merged_upload,
-                           helper.gitxet_merged_upload,
-                           helper.lfs_git_merged_upload,
-                           helper.s3_merged_upload,
-                           helper.lakefs_merged_upload):
-            try:
-                tracker.track(func, args=[filepath])
-            except KeyboardInterrupt:
-                stop = True
+    logger.info(f"Cleanup...")
+    for repo in copy_tech_repos:
+        files = os.listdir(repo)
+        for file in files:
+            if file.endswith('.parquet'):
+                os.remove(os.path.join(repo, file))
 
 
 def benchmark_numeric(iterations: int = 20):
@@ -187,35 +174,43 @@ def benchmark_numeric(iterations: int = 20):
     n_rows_add = 100000
     start_rows = 1000000
     columns = 10
-    filepath = 'numeric/numeric.csv'
-    xet_path = 'xet://xdssio/xethub-py/main/numeric.csv'
-    s3_path = 's3:///versioning-article/s3/numeric.csv'
-    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=False,
-                      params={'step': -1, 'workflow': 'numeric',
+    data_dir = 'numeric'
+    filename = 'numeric.csv'
+    filepath = f"{data_dir}/{filename}"
+
+    generator = NumericDataGenerator(cols=columns)
+    df = generator.generate_data(start_rows)
+    generator.to_csv(df, filepath)
+
+    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=True,
+                      params={'workflow': 'numeric',
                               'n_rows_add': n_rows_add,
                               'start_rows': start_rows,
                               'columns': columns,
                               'filepath': filepath,
                               'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version
+                              'gitxet': gitxet_version,
+                              'merged': True,
+                              'file_bytes': helper.get_file_size(filepath),
                               })
 
-    generator = NumericDataGenerator(cols=columns)
-    df = generator.generate_data(start_rows)
-    directory_path = os.path.dirname(filepath)
-    if os.path.exists(directory_path):
-        shutil.rmtree(directory_path)
-    os.makedirs(directory_path)
-    df.to_csv(filepath, index=False)
+    copy_to_repos(filepath)  # copy to repos
 
-    stop = False  # for graceful exit
     for step in tqdm(range(iterations)):
-        if stop:
-            break
-        tracker.set_params({'step': step,
-                            'file_bytes': helper.get_file_size(filepath),
-                            'is_merged': True})
+        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
+        run_functions(tracker, filepath)  # run functions on a loop
+        logger.debug("Appending rows")
+        for repo in [data_dir] + copy_tech_repos:
+            generator.append(os.path.join(repo, filename), n_rows_add)
+    # Cleanup
+    logger.info(f"Cleanup...")
+    for repo in [data_dir] + copy_tech_repos:
+        os.remove(os.path.join(repo, filename))
 
+        """
+        # Hoyt version
+        xet_path = 'xet://xdssio/xethub-py/main/numeric.csv'
+        s3_path = 's3:///versioning-article/s3/numeric.csv'
         for fuc, args in [(helper.s3_copy_time, [filepath, s3_path]),
                           (helper.xet_copy_time, [filepath, xet_path]),
                           (helper.lakefs_copy_time, [filepath])]:
@@ -225,9 +220,9 @@ def benchmark_numeric(iterations: int = 20):
                 logger.debug(tracker.last)
             except KeyboardInterrupt:
                 stop = True
-
-        generator.append(filepath, n_rows_add)
-    os.remove(filepath)
+            generator.append(filepath, n_rows_add)
+        os.remove(filepath)
+        """
 
 
 if __name__ == '__main__':

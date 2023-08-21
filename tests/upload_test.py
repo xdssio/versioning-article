@@ -79,3 +79,4 @@ def test_copy_pyxet():
     df.to_csv(filepath, index=False)
 
     results = helper.xet_copy_time(filepath, xetpath)
+    print(results)
