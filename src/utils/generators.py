@@ -56,7 +56,7 @@ class DataFrameGenerator:
         else:
             np.random.seed(self.seed)
             data = np.random.rand(num_rows, 10)
-            return pd.DataFrame(data)
+            return pd.DataFrame(data, columns=[str(s) for s in range(10)])
         print(len(data))
         return pd.DataFrame(data, columns=headers)
 
