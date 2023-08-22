@@ -143,28 +143,23 @@ Setup:
 # Terminal 1
 (cd lfs-server && docker-compose up)
 # Terminal 2
+export AWS_ACCESS_KEY_ID
 docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
 
 ```
+
 ## Workflows
+
 ### Numeric non-git
+
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log  python src/main.py numeric -i=20 --show --upload
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log python src/main.py numeric -i=20 --show --upload
 
-
-### Taxi
+### Append to blog csv
 
 ```bash
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/download.py --dir=data --download=all --limit=40
-python src/main.py --dir=data --show --upload
-```
-
-### Blog csv append
-
-```bash
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log python src/main.py append -i=30 --show --upload
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/append.log python src/main.py append -i=30 --show --upload
 ```
 
 ### Mock data
@@ -174,6 +169,14 @@ export PYTHONPATH="$(pwd):$PYTHONPATH"
 python src/generate.py --dir=mock --count=10 --rows=10
 python src/main.py --dir=mock --show --upload
 
+```
+
+### Taxi
+
+```bash
+export PYTHONPATH="$(pwd):$PYTHONPATH"
+python src/download.py --dir=data --download=all --limit=40
+python src/main.py --dir=data --show --upload
 ```
 
 ## Tests

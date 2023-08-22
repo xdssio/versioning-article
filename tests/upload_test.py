@@ -76,7 +76,7 @@ def test_copy_pyxet():
     xetpath = "xet://xdssio/xethub-py/main/mock/numeric.csv"
     generator = NumericDataGenerator(cols=10)
     df = generator.generate_data(100)
-    df.to_csv(filepath, index=False)
+    df.export(filepath, index=False)
 
     results = helper.xet_copy_time(filepath, xetpath)
     print(results)

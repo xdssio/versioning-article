@@ -79,14 +79,22 @@ class NumericDataGenerator:
     def append(self, filename: str, rows: int = None):
         data = np.random.rand(rows, self.cols)
         df = pd.DataFrame(data)
-        df.to_csv(filename, mode='a', header=False, index=False)
+        if path.exists(filename) and filename.endswith('.parquet'):
+            former = pd.read_parquet(filename)
+            df = pd.concat([former, df])
+            df.to_parquet(filename, engine='pyarrow')
+        else:
+            df.to_csv(filename, mode='a', header=False, index=False)
 
-    def to_csv(self, df, filepath):
+    def export(self, df, filepath):
         directory_path = os.path.dirname(filepath)
         if os.path.exists(directory_path):
             shutil.rmtree(directory_path)
         os.makedirs(directory_path)
-        df.to_csv(filepath, index=False)
+        if filepath.endswith('.parquet'):
+            df.to_parquet(filepath, engine='pyarrow')
+        else:
+            df.to_csv(filepath, index=False)
 
 
 class BlogDataGenerator:

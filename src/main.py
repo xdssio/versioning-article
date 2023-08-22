@@ -22,20 +22,21 @@ logger.add("logs/{time}.log")
 helper = Helper()
 metrics = MetricsHelper()
 OUTPUT_DB = 'output/stats.db'
-copy_tech_repos = [Helper.XETHUB_GIT, Helper.LFS_GITHUB, Helper.LFS_S3, Helper.DVC]
+COPY_REPOS = [Helper.XETHUB_GIT, Helper.LFS_GITHUB, Helper.LFS_S3, Helper.DVC]
 
 upload_functions = (helper.gitxet_upload,
-                    helper.lakefs_upload,
-                    helper.dvc_upload,
+                    helper.lfs_git_upload,
                     helper.lfs_s3_upload,
+                    helper.dvc_upload,
+
+                    helper.lakefs_upload,
                     helper.s3_upload,
                     helper.pyxet_upload,
-                    helper.lfs_git_upload,
                     )
 
 
 def copy_to_repos(filepath):
-    for repo in copy_tech_repos:
+    for repo in COPY_REPOS:
         helper.copy_file(filepath, repo)
 
 
@@ -43,6 +44,69 @@ def run_functions(tracker, filepath):
     for func in upload_functions:
         logger.info(f"Running {func.__name__}")
         tracker.track(func, args=[filepath])
+
+
+def benchmark_taxi_merged(iterations: int = 20):
+    data_dir = 'taxi'
+    files = sorted(glob(f"{data_dir}/*.parquet"))
+    file_count = len(files)
+    merged_filename = 'merged.parquet'
+    merged_filepath = path.join('taxi', merged_filename)
+    if merged_filepath in files:
+        file_count -= 1
+    logger.info(f"benchmark - taxi : {file_count} files")
+    tracker = Tracker(OUTPUT_DB,
+                      verbose=False,
+                      params={'step': -1,
+                              'file_count': file_count,
+                              'workflow': 'taxi-merged',
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version,
+                              'merged': True,
+                              })
+
+    for step, filepath in tqdm(enumerate(files)):
+        if step == iterations:
+            break
+        tracker.set_params({'step': step, "filepath": filepath, 'file_bytes': helper.get_file_size(filepath)})
+        tracker.track(helper.merge_files, args=[filepath, merged_filepath])
+        copy_to_repos(merged_filepath)
+        run_functions(tracker, merged_filepath)
+
+    logger.info(f"Cleanup...")
+    for repo in ['taxi'] + COPY_REPOS:
+        os.remove(os.path.join(repo, merged_filename))
+
+
+def benchmark_taxi_new(iterations: int = 20):
+    data_dir = 'taxi'
+    files = sorted(glob(f"{data_dir}/*.parquet"))
+    file_count = len(files)
+    logger.info(f"benchmark - taxi upload: {file_count} files")
+    tracker = Tracker(OUTPUT_DB,
+                      verbose=False,
+                      params={'step': -1,
+                              'file_count': file_count,
+                              'workflow': 'taxi upload',
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version,
+                              'merged': False,
+                              })
+
+    for step, filepath in tqdm(enumerate(files)):
+        if step == iterations:
+            break
+        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath), 'filepath': filepath})
+        # copy locally
+        copy_to_repos(filepath)
+        run_functions(tracker, filepath)
+
+    logger.info(f"Cleanup...")
+    for repo in COPY_REPOS:
+        files = os.listdir(repo)
+        for file in files:
+            if file.endswith('.parquet'):
+                os.remove(os.path.join(repo, file))
 
 
 def benchmark_random(iterations: int = 100):
@@ -65,16 +129,17 @@ def benchmark_random(iterations: int = 100):
         run_functions(tracker, filepath)
 
     logger.info(f"Cleanup...")
-    for repo in copy_tech_repos:
+    for repo in COPY_REPOS:
         os.remove(f"{repo}/{filename}")
 
 
-def benchmark_append(iterations: int = 100):
+def benchmark_append(iterations: int = 100, rows: int = 1, suffix: str = 'csv'):
     logger.info(f"benchmark append csv - blog - {iterations} iterations")
     data_dir = 'blog'
+    print('???')
     original = f"{data_dir}/original.csv"
-    filename = 'appended.csv'
-    n_rows_add = 1
+    filename = f"appended.{suffix}"
+    n_rows_add = rows
     start_rows = 68200
     appended_filepath = filepath = f"{data_dir}/{filename}"
     tracker = Tracker(OUTPUT_DB, verbose=False,
@@ -100,87 +165,31 @@ def benchmark_append(iterations: int = 100):
 
     for step in range(iterations):
         tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
-        if step > 0:
-            for repo in [data_dir] + copy_tech_repos:
-                generator.append(os.path.join(repo, filename), n_rows_add)
         run_functions(tracker, filepath)  # run functions on a loop
+        for repo in [data_dir] + COPY_REPOS:
+            generator.append(os.path.join(repo, filename), n_rows_add)
 
     logger.info(f"Cleanup...")
-    for repo in [data_dir] + copy_tech_repos:
+    for repo in [data_dir] + COPY_REPOS:
         os.remove(os.path.join(repo, filename))
 
 
-def benchmark_taxi_merged():
-    data_dir = 'taxi'
-    files = sorted(glob(f"{data_dir}/*.parquet"))
-    file_count = len(files)
-    merged_filename = 'merged.parquet'
-    merged_filepath = path.join('taxi', merged_filename)
-    if merged_filepath in files:
-        file_count -= 1
-    logger.info(f"benchmark - taxi : {file_count} files")
-    tracker = Tracker(OUTPUT_DB,
-                      verbose=False,
-                      params={'step': -1,
-                              'file_count': file_count,
-                              'workflow': 'taxi-merged',
-                              'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version,
-                              'merged': True,
-                              })
-
-    for step, filepath in tqdm(enumerate(files)):
-        tracker.set_params({'step': step, "filepath": filepath, 'file_bytes': helper.get_file_size(filepath)})
-        tracker.track(helper.merge_files, args=[filepath, merged_filepath])
-        copy_to_repos(merged_filepath)
-        run_functions(tracker, merged_filepath)
-
-    logger.info(f"Cleanup...")
-    for repo in ['taxi'] + copy_tech_repos:
-        os.remove(os.path.join(repo, merged_filename))
-
-
-def benchmark_taxi_new():
-    data_dir = 'taxi'
-    files = sorted(glob(f"{data_dir}/*.parquet"))
-    file_count = len(files)
-    logger.info(f"benchmark - taxi upload: {file_count} files")
-    tracker = Tracker(OUTPUT_DB,
-                      verbose=False,
-                      params={'step': -1,
-                              'file_count': file_count,
-                              'workflow': 'taxi upload',
-                              'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version,
-                              'merged': False,
-                              })
-
-    for step, filepath in tqdm(enumerate(files)):
-        tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath), 'filepath': filepath})
-        # copy locally
-        copy_to_repos(filepath)
-        run_functions(tracker, filepath)
-
-    logger.info(f"Cleanup...")
-    for repo in copy_tech_repos:
-        files = os.listdir(repo)
-        for file in files:
-            if file.endswith('.parquet'):
-                os.remove(os.path.join(repo, file))
-
-
-def benchmark_numeric(iterations: int = 20):
+def benchmark_numeric(iterations: int = 20,
+                      n_rows_add: int = 100000,
+                      start_rows: int = 1000000,
+                      columns: int = 10,
+                      suffix: str = 'csv'):
     logger.info(f"benchmark - numeric - {iterations} iterations")
-    n_rows_add = 100000
-    start_rows = 1000000
-    columns = 10
     data_dir = 'numeric'
-    filename = 'numeric.csv'
+    if suffix.startswith('.'):
+        suffix = suffix[1:]
+    filename = f"numeric.{suffix}"
     filepath = f"{data_dir}/{filename}"
 
     generator = NumericDataGenerator(cols=columns)
+    logger.info(f"Generating {start_rows} rows")
     df = generator.generate_data(start_rows)
-    generator.to_csv(df, filepath)
+    generator.export(df, filepath)
 
     tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=True,
                       params={'workflow': 'numeric',
@@ -194,17 +203,18 @@ def benchmark_numeric(iterations: int = 20):
                               'file_bytes': helper.get_file_size(filepath),
                               })
 
+    logger.info(f"copying to repos...")
     copy_to_repos(filepath)  # copy to repos
 
     for step in tqdm(range(iterations)):
         tracker.set_params({'step': step, 'file_bytes': helper.get_file_size(filepath)})
         run_functions(tracker, filepath)  # run functions on a loop
         logger.debug("Appending rows")
-        for repo in [data_dir] + copy_tech_repos:
+        for repo in [data_dir] + COPY_REPOS:
             generator.append(os.path.join(repo, filename), n_rows_add)
     # Cleanup
     logger.info(f"Cleanup...")
-    for repo in [data_dir] + copy_tech_repos:
+    for repo in [data_dir] + COPY_REPOS:
         os.remove(os.path.join(repo, filename))
 
         """
@@ -225,26 +235,103 @@ def benchmark_numeric(iterations: int = 20):
         """
 
 
+def benchmark_split(iterations: int = 10):
+    logger.info(f"benchmark - train test split - {iterations} iterations")
+    data_dir = 'tts'
+    train_name = 'train.parquet'
+    test_name = 'test.parquet'
+    validation_name = 'validation.parquet'
+    columns = 10
+    start_rows = 100000
+    n_rows_add = 5000
+
+    generator = NumericDataGenerator(cols=columns)
+
+    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=True,
+                      params={'workflow': 'numeric',
+                              'n_rows_add': n_rows_add,
+                              'start_rows': start_rows,
+                              'columns': columns,
+                              'pyxet': pyxet.__version__,
+                              'gitxet': gitxet_version,
+                              'merged': False,
+                              'step': -1,
+                              })
+    logger.info(f"Generating data...")
+
+    # test
+    for repo in COPY_REPOS:
+        helper._remove(data_dir, repo)
+
+    for repo in COPY_REPOS:
+        target = os.path.join(repo, data_dir)
+        shutil.rmtree(target, ignore_errors=True)
+        os.makedirs(os.path.join(target, 'train'))
+        os.makedirs(os.path.join(target, 'validation'))
+        os.makedirs(os.path.join(target, 'test'))
+        generator.generate_data(start_rows).to_parquet(os.path.join(target, 'train', train_name))
+        generator.generate_data(n_rows_add).to_parquet(os.path.join(target, 'validation', validation_name))
+        generator.generate_data(n_rows_add).to_parquet(os.path.join(target, 'test', test_name))
+
+    # upload first time
+    for func in upload_functions:
+        logger.info(f"Running {func.__name__}")
+        tracker.track(func, args=[os.path.join(data_dir, 'train', train_name)])
+        tracker.track(func, args=[os.path.join(data_dir, 'test', test_name)])
+        tracker.track(func, args=[os.path.join(data_dir, 'validation', validation_name)])
+
+    # for step in tqdm(range(iterations)):
+    #     tracker.set_params({'step': step})
+    #     run_functions(tracker, filepath)
+
+    """
+    make train, test, validation dtaframes
+    copy to each place
+    run_functions
+    for each step:
+        for each tech:
+            move from validation to train
+            move from test to validation
+            generate test        
+    """
+
+
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
-    p.add_argument('workflow', choices=['append', 'taxi', 'random', 'numeric'], help='The experiment to run')
+    p.add_argument('workflow', choices=[
+        'append',
+        'taxi',
+        'taxi-merge',
+        'random',
+        'numeric',
+        'split'],
+                   help='The experiment to run')
     p.add_argument('-i', '--iterations', type=int, help='Number of iterations to run', default=10)
     p.add_argument('-u',
                    '--upload', default=False, action='store_true',
                    help='If True, upload to repo')
+    p.add_argument('-r', '--rows', default=1, type=int, help='Number of rows to append')
     p.add_argument('-s',
                    '--show', default=False, action='store_true',
                    help='If True, run snakeviz server')
+    p.add_argument('--suffix', type=str, default='csv', help='Suffix to add to the filename')
     args = p.parse_args()
     iterations = args.iterations
+    n_rows_add = args.rows
+
     if args.workflow == 'append':
-        command = f"benchmark_append({iterations})"
+        command = f"benchmark_append({iterations},{n_rows_add},'{args.suffix}')"
+        print(command)
     elif args.workflow == 'taxi':
-        command = f"benchmark_taxi({iterations})"
+        command = f"benchmark_taxi_new({iterations})"
+    elif args.workflow == 'taxi-merge':
+        command = f"benchmark_taxi_merged({iterations})"
     elif args.workflow == 'random':
         command = f"benchmark_random({iterations})"
     elif args.workflow == 'numeric':
-        command = f"benchmark_numeric({iterations})"
+        command = f"benchmark_numeric({iterations},{n_rows_add},suffix='{args.suffix}')"
+    elif args.workflow == 'split':
+        command = f"benchmark_split({iterations})"
     else:
         raise ValueError(f"Unknown experiment: {args.workflow}")
 

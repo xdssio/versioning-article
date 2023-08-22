@@ -176,5 +176,6 @@ datasets/
 blog/
 taxi/
 mock/
+tts/
 
 tests/mock/

@@ -41,27 +41,27 @@ class Helper:
 
     def dvc_upload(self, filepath: str):
         self._dvc_upload(filepath)
-        return {'function': 'dvc new upload', 'tech': 'dvc', 'merged': False}
+        return {'function': 'dvc upload', 'tech': 'dvc', 'merged': False}
 
     def lfs_s3_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_S3)
-        return {'function': 'lfs s3 new upload', 'tech': 'lfs', 'merged': False}
+        return {'function': 'lfs s3 upload', 'tech': 'lfs', 'merged': False}
 
     def lfs_git_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git new upload', 'tech': 'lfs', 'merged': False}
+        return {'function': 'lfs git upload', 'tech': 'lfs', 'merged': False}
 
     def pyxet_upload(self, filepath: str):
         self._xethub_upload(filepath)
-        return {'function': 'pyxet new upload', 'tech': 'xethub', 'merged': False}
+        return {'function': 'pyxet upload', 'tech': 'xethub', 'merged': False}
 
     def gitxet_upload(self, filepath: str):
         self._xethub_upload(filepath, pyxet_api=False)
-        return {'function': 'git-xet new upload', 'tech': 'xethub', 'merged': False}
+        return {'function': 'git-xet upload', 'tech': 'xethub', 'merged': False}
 
     def lakefs_upload(self, filepath: str):
         self._lakefs_upload(filepath)
-        return {'function': 'lakefs new upload', 'tech': 'lakefs', 'merged': False}
+        return {'function': 'lakefs upload', 'tech': 'lakefs', 'merged': False}
 
     def s3_upload(self, filepath: str):
         self._s3_upload(filepath)
@@ -145,6 +145,27 @@ class Helper:
         filename = os.path.basename(filepath)
         self._dvc_add_commit(filename)
         self._dvc_push()
+
+    def _dvc_remove(self, path:str):
+        if not path.startswith(Helper.DVC):
+            path = os.path.join(Helper.DVC, path)
+        command = f"""
+                    dvc remote {path}
+                    git rm -r {path}
+                    rm -rf -r {path}
+                    """
+        return self.run(command, Helper.DVC)
+
+    def _remove(self, path:str, repo:str):
+        if repo == Helper.DVC:
+            return self._dvc_remove(path)
+        command = f"""
+                    rm -rf -r {path}                                         
+                    git add {path}
+                    git commit -m "remove {path}"
+                    git push       
+                    """
+        return self.run(command,repo)
 
     def _git_add_commit(self, filename: str, repo: str = '', commit: str = ""):
         commit = commit or filename
