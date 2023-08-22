@@ -4,15 +4,18 @@ from utils.generators import DataFrameGenerator
 if __name__ == '__main__':
     p = argparse.ArgumentParser('Benchmarking of NYC Taxi data in different repositories')
     p.add_argument(
-        '--dir', default='data',
-        help='The directory in which to save generated data')
-    p.add_argument(
-        '--count', default=5,
-        help='Number of files to generate')
+        '--path', default='0.csv',
+        help='The file to write')
     p.add_argument(
         '--rows', default=1000, type=int,
         help='number of rows per file')
+    p.add_argument(
+        '--seed', default=1, type=int,
+        help='random seed')
     args = p.parse_args()
-    generator = DataFrameGenerator(target=args.dir, rows=args.rows, count=args.count)
-    generator.generate_mock_files()
+    generator = DataFrameGenerator(num_rows=args.rows, seed=args.seed)
+    if args.path.endswith('.parquet'):
+        generator.generate_file(target=args.path)
+    else:
+        generator.generate_file_csv(target=args.path)
 
