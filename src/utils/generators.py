@@ -23,11 +23,13 @@ MERGED_FILENAME = 'merged.parquet'
 
 class DataFrameGenerator:
 
-    def __init__(self, num_rows: int = 10, file_count: int = 1, seed=1):
+    def __init__(self, num_rows: int = 10, file_count: int = 1, seed=1,form='t'):
         self.fake = Faker()
         self.seed = seed
         self.num_rows = num_rows
         self.file_count = file_count
+        assert(form == 't' or form == 'n')
+        self.form = form
 
     def generate_data(self, num_rows: int = None):
         num_rows = num_rows or self.num_rows
@@ -35,22 +37,26 @@ class DataFrameGenerator:
                    'Zip', 'Country', 'Company', 'Job Title',
                    'SSN', 'Latitude', 'Longitude']
         data = []
-        Faker.seed(self.seed)
-
-        for _ in range(num_rows):
-            data.append([self.fake.name(),
-                         self.fake.email(),
-                         self.fake.phone_number(),
-                         self.fake.address(),
-                         self.fake.city(),
-                         self.fake.state(),
-                         self.fake.zipcode(),
-                         self.fake.country(),
-                         self.fake.company(),
-                         self.fake.job(),
-                         self.fake.ssn(),
-                         self.fake.latitude(),
-                         self.fake.longitude()])
+        if self.form == 't':
+            Faker.seed(self.seed)
+            for _ in range(num_rows):
+                data.append([self.fake.name(),
+                             self.fake.email(),
+                             self.fake.phone_number(),
+                             self.fake.address(),
+                             self.fake.city(),
+                             self.fake.state(),
+                             self.fake.zipcode(),
+                             self.fake.country(),
+                             self.fake.company(),
+                             self.fake.job(),
+                             self.fake.ssn(),
+                             self.fake.latitude(),
+                             self.fake.longitude()])
+        else:
+            np.random.seed(self.seed)
+            data = np.random.rand(num_rows, 10)
+            return pd.DataFrame(data)
         print(len(data))
         return pd.DataFrame(data, columns=headers)
 

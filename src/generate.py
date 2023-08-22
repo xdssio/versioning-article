@@ -12,8 +12,11 @@ if __name__ == '__main__':
     p.add_argument(
         '--seed', default=1, type=int,
         help='random seed')
+    p.add_argument(
+        '--form', default='t', type=str,
+        help='t for table, n for numeric')
     args = p.parse_args()
-    generator = DataFrameGenerator(num_rows=args.rows, seed=args.seed)
+    generator = DataFrameGenerator(num_rows=args.rows, seed=args.seed, form=args.form)
     if args.path.endswith('.parquet'):
         generator.generate_file(target=args.path)
     else:
