@@ -14,7 +14,6 @@ import csv
 
 from pydantic import typing
 
-fake = Faker()
 
 NYC_TLC_SITE = 'https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page'
 HFVHFV_PATTERN = r'fhvhv_tripdata_'
@@ -24,31 +23,35 @@ MERGED_FILENAME = 'merged.parquet'
 
 class DataFrameGenerator:
 
-    def __init__(self, num_rows: int = 10, file_count: int = 1):
+    def __init__(self, num_rows: int = 10, file_count: int = 1, seed=1):
+        self.fake = Faker()
+        self.seed = seed
         self.num_rows = num_rows
         self.file_count = file_count
 
     def generate_data(self, num_rows: int = None):
         num_rows = num_rows or self.num_rows
-        headers = ['Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip', 'Country', 'Company', 'Job Title',
+        headers = ['Name', 'Email', 'Phone', 'Address', 'City', 'State', 
+                   'Zip', 'Country', 'Company', 'Job Title',
                    'SSN', 'Latitude', 'Longitude']
         data = []
+        Faker.seed(self.seed)
 
         for _ in range(num_rows):
-            data.append([fake.name(),
-                         fake.email(),
-                         fake.phone_number(),
-                         fake.address(),
-                         fake.city(),
-                         fake.state(),
-                         fake.zipcode(),
-                         fake.country(),
-                         fake.company(),
-                         fake.job(),
-                         fake.ssn(),
-                         fake.latitude(),
-                         fake.longitude()])
-
+            data.append([self.fake.name(),
+                         self.fake.email(),
+                         self.fake.phone_number(),
+                         self.fake.address(),
+                         self.fake.city(),
+                         self.fake.state(),
+                         self.fake.zipcode(),
+                         self.fake.country(),
+                         self.fake.company(),
+                         self.fake.job(),
+                         self.fake.ssn(),
+                         self.fake.latitude(),
+                         self.fake.longitude()])
+        print(len(data))
         return pd.DataFrame(data, columns=headers)
 
     @staticmethod
@@ -56,13 +59,26 @@ class DataFrameGenerator:
         df.to_parquet(filename)
 
     def generate_mock_files(self, target: str, file_count: int = None, num_rows: int = None):
+        Faker.seed(0)
         num_rows = num_rows or self.num_rows
         file_count = file_count or self.file_count
-        shutil.rmtree(target, ignore_errors=True)
-        os.mkdir(target)
 
         for filename in tqdm.tqdm(range(0, file_count)):
             self.generate_data(num_rows).to_parquet(f"{target}/{filename}.parquet")
+
+
+    def generate_file(self, target: str,  num_rows: int = None):
+        Faker.seed(0)
+        num_rows = num_rows or self.num_rows
+
+        self.generate_data(num_rows).to_parquet(f"{target}")
+
+
+    def generate_file_csv(self, target: str,  num_rows: int = None):
+        Faker.seed(0)
+        num_rows = num_rows or self.num_rows
+
+        self.generate_data(num_rows).to_csv(f"{target}")
 
 
 class NumericDataGenerator:
