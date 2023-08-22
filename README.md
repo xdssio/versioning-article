@@ -26,8 +26,9 @@ python -m venv .venv \
 # Download data - takes time! 
 python src/download.py --dir=data --download=all --limit=2
 
-# For quick testing
-python src/generate.py --dir=mock --count=5 --rows=1000
+# For quick testing. Seed can by any number. 
+python src/generate.py --path=0.csv --rows=1000 [--seed=1]
+python src/generate.py --path=0.parquet--rows=1000 [--seed=1]
 ```
 
 ### XetHub setup
