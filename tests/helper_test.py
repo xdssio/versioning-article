@@ -1,5 +1,5 @@
-from src.utils.metrics import MetricsHelper
 import requests
+from xetrack import Tracker
 import sys
 
 
@@ -10,18 +10,11 @@ def read_image():
 
 
 def test_record():
-    helper = MetricsHelper('mock', 1)
-    helper.set_file('file')
-    helper.record(func=read_image, tech='tech', merged=False)
-    df = helper._get_stats()
-    results = df.to_dict(orient='records')[0]
+    tracker = Tracker(params={'data_dir': 'mock'})
+    tracker.track(func=read_image, params={'tech': 'tech', 'merged': False})
+    results = tracker.latest
     assert results['data_dir'] == 'mock'
-    assert results['file_count'] == 1
     assert results['tech'] == 'tech'
     assert not results['merged']
-    assert results['filename'] == 'file'
-    assert results['step'] == 0
     assert results['bytes_sent']
-    assert results['bytes_recv'] > 6e5
-    assert results['bytes_sent_1s']
-    assert results['bytes_recv_1s'] < results['bytes_recv']
+    assert results['bytes_recv'] > 0.5

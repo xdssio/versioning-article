@@ -1,8 +1,10 @@
+import contextlib
 import time
-
+import git
 from src.utils.helper import Helper
 from src.utils.generators import DataFrameGenerator, NumericDataGenerator
 import pytest
+from tempfile import TemporaryDirectory
 
 filename = '0.parquet'
 filepath = f"tests/mock/{filename}"
@@ -56,6 +58,8 @@ def test_xethub_git_upload():
     helper._xethub_upload(filepath, pyxet_api=False)
     time.sleep(10)
     assert filename in helper.xet_ls(helper.xet_git_repo)
+    with contextlib.suppress(RuntimeError):
+        helper.xet_remove(filename, helper.xet_git_repo)
 
 
 def test_s3_upload():
@@ -72,11 +76,14 @@ def test_lakefs_upload():
 
 
 def test_copy_pyxet():
-    filepath = "tests/mock/numeric.csv"
-    xetpath = "xet://xdssio/xethub-py/main/mock/numeric.csv"
+    tmp = TemporaryDirectory()
+    repo = git.Repo('xethub-py')
+    xetpath = repo.remotes.origin.url.replace('https://', 'xet://') + '/main/mock/numeric.csv'
+    xetpath = '/'.join(['xet:/'] + repo.remotes.origin.url.split('/')[-2:] + ['main', 'mock', 'numeric.csv'])
+    xetpath = xetpath.replace('.git', '')
+    # xetpath = "xet://xdssio/xethub-py-2/main/mock/numeric.csv"
     generator = NumericDataGenerator(cols=10)
-    df = generator.generate_data(100)
-    df.export(filepath, index=False)
 
-    results = helper.xet_copy_time(filepath, xetpath)
-    print(results)
+    generator.export(generator.generate_data(100), tmp.name + '/numeric.csv')
+
+    results = helper.xet_copy_time(tmp.name + '/numeric.csv', xetpath)

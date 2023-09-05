@@ -1,23 +1,24 @@
-import os
-import shutil
+from tempfile import TemporaryDirectory
+from src.utils.generators import DataFrameGenerator
+from src.utils.helper import Helper
 
-from src.utils import merge_files, generate_mock_files
 from glob import glob
 
 
 def test_generate_mock_data():
-    generate_mock_files('mock', 5, 100)
-    assert len(glob('mock/*.parquet')) == 5
-    shutil.rmtree('mock', ignore_errors=True)
+    tmp = TemporaryDirectory()
+    path = tmp.name + '/mock'
+    DataFrameGenerator().generate_mock_files(path, 5, 100)
+    assert len(glob(path+'/*')) == 5
 
 
 def test_merge():
-    generate_mock_files('mock', 5, 10000)
-    files = glob('mock/*.parquet')
+    tmp = TemporaryDirectory()
+    path = tmp.name + '/mock'
+    DataFrameGenerator().generate_mock_files(path, 5, 100)
+    files = glob(path+'/*')
+    helper = Helper()
     for file in files:
-        merge_files('merged.parquet', file)
-    os.remove('merged.parquet')
+        helper.merge_files(file, path+'/merged.parquet')
 
 
-if __name__ == '__main__':
-    test_merge()
