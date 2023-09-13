@@ -125,12 +125,14 @@ class Helper:
         return self.run(command, repo)
 
     def run(self, command: str, repo: str = ''):
-        logger.debug(command)
+        logger.info(command)
         args = {"shell": True, "capture_output": True}
         if repo:
             args["cwd"] = repo
-        out = subprocess.run(command, **args)
-        logger.debug(out)
+        out = subprocess.run(command, **args).stdout
+        if out:
+            out = out.decode()
+            logger.info(out)
         return out
 
     def _dvc_add_commit(self, filename: str):

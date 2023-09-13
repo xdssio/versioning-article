@@ -1,6 +1,5 @@
 import os
 import shutil
-import pandas as pd
 import typer
 from typing import List
 from tqdm import tqdm
@@ -12,10 +11,6 @@ from loguru import logger
 from src.generators import DataFrameGenerator
 from src.helper import Helper
 import subprocess
-
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.width', 1000)
 
 helper = Helper()
 OUTPUT_DB = 'output/stats.db'
@@ -33,7 +28,7 @@ upload_functions = {'pyxet': helper.pyxet_upload,
                     'dvc': helper.dvc_upload,
                     }
 
-logger.add("logs/{time}.log")
+logger.add("logs/{time:YYYY-MM-DD}.log", rotation="1 day")
 gitxet_version = subprocess.run("git xet --version", shell=True, capture_output=True).stdout.decode('utf-8')
 branch = subprocess.run("git branch --show-current", shell=True, capture_output=True).stdout.decode('utf-8').replace(
     '\n', '')
@@ -44,7 +39,8 @@ helper = Helper()
 def get_default_tracker():
     return Tracker(OUTPUT_DB, verbose=False, params={'pyxet': pyxet.__version__,
                                                      'gitxet': gitxet_version,
-                                                     'branch': branch})
+                                                     'branch': branch},
+                   logger=logger)
 
 
 class Tech(str, Enum):
@@ -114,6 +110,7 @@ def _append(tech: str, step: int, start_rows: int, add_rows: int, suffix: str, n
     func = upload_functions.get(tech)
     logger.info(f"running {func.__name__}")
     tracker.track(func, params=params, args=[filepath])
+    tracker.latest
     # cleanup
     if os.path.exists(filename): os.remove(filename)
     if os.path.exists(f"{COPY_REPOS.get(tech)}/{filename}"): os.remove(f"{COPY_REPOS.get(tech)}/{filename}")
@@ -165,8 +162,17 @@ def compare(workflow: Annotated[Workflows, typer.Argument(help="The workflow to 
 
 
 @app.command()
-def latest():
-    typer.echo(Reader(OUTPUT_DB).latest())
+def test():
+    for tech in upload_functions:
+        logger.info(f"test {tech}")
+        append(tech=tech, step=0, start_rows=10, add_rows=10, suffix='csv', numeric=True, label='test')
+
+
+@app.command()
+def latest(rows: Annotated[int, typer.Argument(help="Number of rows")] = 7):
+    result = Reader(OUTPUT_DB).to_df()
+    result = result[['timestamp','workflow', 'tech', 'step', 'file_size', 'name', 'time']]
+    typer.echo(result.tail(rows).to_markdown())
 
 
 if __name__ == "__main__":

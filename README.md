@@ -75,7 +75,8 @@ Setup:
 4. `git lfs install`
 5. `git lfs track '*.parquet'`
 6. `git lfs track '*.csv'`
-7. `git add .gitattributes && git commit -m "Enable LFS" && git push`
+7. `git lfs track '*.txt'`
+8. `git add .gitattributes && git commit -m "Enable LFS" && git push`
 
 #### LFS setup + S3
 
@@ -160,6 +161,16 @@ cd xethub-git && git pull && cd ..
 ```
 
 ## Workflows
+### test
+This upload a small file to all techs
+```bash
+python main.py test
+```
+### Viz latest
+```bash
+python main.py latest 10
+```
+
 
 ```bash
 python main.py append --tech=pyxet --step=0 --start-rows = 10 --add-rows = 10 --suffix=csv
