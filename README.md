@@ -172,8 +172,8 @@ This upload a small file to all techs
 python main.py test
 ```
 
-### Latest - test/experiment
-This is a quick view of latest results
+### Peek on latest
+This is a quick view of latest results from the terminal.
 
 ```bash
 python main.py latest
@@ -188,9 +188,11 @@ python main.py latest 10
 We simulate a single step with a single technology.    
 We generate a new file with a given seed (such as the first rows are always the same for the same seed) - number of rows
 is the *start rows* + *add rows X step*.
-
 Params:
-| --tech                          [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                    │
+```
+
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --tech                          [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                    │
 │ --step                          INTEGER RANGE [x>=0]                         The step to simulate [default: 0]                                                                                                        │
 │ --start-rows                    INTEGER                                      How many rows to start with [default: 100000000]                                                                                         │
 │ --add-rows                      INTEGER                                      How many rows to add [default: 10000000]                                                                                                 │
@@ -198,9 +200,8 @@ Params:
 │ --diverse       --no-diverse                                                 Whether to generate numeric data [default: no-diverse]                                                                                   │
 │ --label                         TEXT                                         The experiment to run [default: default]                                                                                                 │
 │ --seed                          INTEGER                                      The seed to use [default: 0]                                                                                                             │
-│ --help                                                                       Show this message and exit.
-
-```bash
+│ --help                                                                       Show this message and exit.                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 # This create a csv file with 120 rows - it is equivalent to start with 100 rows, and append 10 rows at step 1 and 2.
 python main.py append --tech=pyxet --step=2 --start-rows = 100 --add-rows = 10 --suffix=csv
 ```
@@ -209,6 +210,7 @@ python main.py append --tech=pyxet --step=2 --start-rows = 100 --add-rows = 10 -
 ### Benchmark
 Execute a benchmark for a given workflow, list of technologies and multiple steps.
 
+```bash
 ╭─ Arguments ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ *    workflow      WORKFLOW:{append|split|taxi}                           The workflow to execute [default: None] [required]                                                                                          │
 │      tech          [TECH]:[s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]...  The tech to use [default: None (all)]                                                                                                             │
@@ -223,7 +225,7 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
 │ --seed                          INTEGER               The seed to use [default: 0]                                                                                                                                    │
 │ --help                                                Show this message and exit.                                                                                                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
+```
 * If only a single step is done, it is equivalent to `random` workflow - as we only generate a single file and upload.
 * It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and steps==1 -> label is random, otherwise it is 'append-{steps}. 
 
