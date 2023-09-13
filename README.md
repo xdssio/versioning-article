@@ -173,6 +173,7 @@ python main.py test
 ```
 
 ### Peek on latest
+
 This is a quick view of latest results from the terminal.
 
 ```bash
@@ -189,8 +190,8 @@ We simulate a single step with a single technology.
 We generate a new file with a given seed (such as the first rows are always the same for the same seed) - number of rows
 is the *start rows* + *add rows X step*.
 Params:
-```
 
+```bash
 ╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ --tech                          [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                    │
 │ --step                          INTEGER RANGE [x>=0]                         The step to simulate [default: 0]                                                                                                        │
@@ -202,12 +203,14 @@ Params:
 │ --seed                          INTEGER                                      The seed to use [default: 0]                                                                                                             │
 │ --help                                                                       Show this message and exit.                                                                                                              │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Exmaple:
+
 # This create a csv file with 120 rows - it is equivalent to start with 100 rows, and append 10 rows at step 1 and 2.
 python main.py append --tech=pyxet --step=2 --start-rows = 100 --add-rows = 10 --suffix=csv
 ```
 
-
 ### Benchmark
+
 Execute a benchmark for a given workflow, list of technologies and multiple steps.
 
 ```bash
@@ -226,8 +229,10 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
 │ --help                                                Show this message and exit.                                                                                                                                     │
 ╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
+
 * If only a single step is done, it is equivalent to `random` workflow - as we only generate a single file and upload.
-* It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and steps==1 -> label is random, otherwise it is 'append-{steps}. 
+* It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and
+  steps==1 -> label is random, otherwise it is 'append-{steps}. 
 
 
 
