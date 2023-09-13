@@ -235,6 +235,3 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
   steps==1 -> label is random, otherwise it is 'append-{steps}. 
 
 
-
-
-
