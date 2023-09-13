@@ -232,8 +232,5 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
 
 * If only a single step is done, it is equivalent to `random` workflow - as we only generate a single file and upload.
 * It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and
-  steps==1 -> label is random, otherwise it is 'append-{steps}. 
-
-
-
+  steps==1 -> label is random, otherwise it is 'append-{steps}.
 
