@@ -132,7 +132,7 @@ class Helper:
         out = subprocess.run(command, **args).stdout
         if out:
             out = out.decode()
-            logger.info(out)
+            logger.debug(out)
         return out
 
     def _dvc_add_commit(self, filename: str):
@@ -232,7 +232,7 @@ class Helper:
         self.run(f"lakectl fs upload -s {filepath} lakefs://versioning-article/main/{filepath}")
 
     def _s3_upload(self, filepath):  # not capturing output - too noisey
-        command = f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}"
+        command = f"time aws s3 cp {filepath} s3://versioning-article/s3/{filepath}"
         logger.debug(command)
         args = {"shell": True, "capture_output": True}
         return subprocess.run(command, **args)

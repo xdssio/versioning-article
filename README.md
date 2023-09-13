@@ -161,98 +161,73 @@ cd xethub-git && git pull && cd ..
 ```
 
 ## Workflows
+
+```python main.py --help```
+
 ### test
+
 This upload a small file to all techs
+
 ```bash
 python main.py test
 ```
-### Viz latest
+
+### Latest - test/experiment
+This is a quick view of latest results
+
 ```bash
+python main.py latest
+
+# This let you see the last 10 rows ignoring the experiment id ('track_id').
 python main.py latest 10
+
 ```
 
+### Append
+
+We simulate a single step with a single technology.    
+We generate a new file with a given seed (such as the first rows are always the same for the same seed) - number of rows
+is the *start rows* + *add rows X step*.
+
+Params:
+| --tech                          [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                    │
+│ --step                          INTEGER RANGE [x>=0]                         The step to simulate [default: 0]                                                                                                        │
+│ --start-rows                    INTEGER                                      How many rows to start with [default: 100000000]                                                                                         │
+│ --add-rows                      INTEGER                                      How many rows to add [default: 10000000]                                                                                                 │
+│ --suffix                        [csv|parquet|txt]                            What file type to save [default: Suffix.csv]                                                                                             │
+│ --diverse       --no-diverse                                                 Whether to generate numeric data [default: no-diverse]                                                                                   │
+│ --label                         TEXT                                         The experiment to run [default: default]                                                                                                 │
+│ --seed                          INTEGER                                      The seed to use [default: 0]                                                                                                             │
+│ --help                                                                       Show this message and exit.
 
 ```bash
-python main.py append --tech=pyxet --step=0 --start-rows = 10 --add-rows = 10 --suffix=csv
+# This create a csv file with 120 rows - it is equivalent to start with 100 rows, and append 10 rows at step 1 and 2.
+python main.py append --tech=pyxet --step=2 --start-rows = 100 --add-rows = 10 --suffix=csv
 ```
 
-### Numeric
 
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/main.py numeric -i=20 --show --upload
+### Benchmark
+Execute a benchmark for a given workflow, list of technologies and multiple steps.
 
-### Append to blog csv
+╭─ Arguments ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ *    workflow      WORKFLOW:{append|split|taxi}                           The workflow to execute [default: None] [required]                                                                                          │
+│      tech          [TECH]:[s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]...  The tech to use [default: None (all)]                                                                                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --steps                         INTEGER RANGE [x>=1]  number of steps to run [default: 1]                                                                                                                             │
+│ --start-rows                    INTEGER               How many rows to start with [default: 100000000]                                                                                                                │
+│ --add-rows                      INTEGER               How many rows to add [default: 10000000]                                                                                                                        │
+│ --suffix                        [csv|parquet|txt]     What file type to save [default: Suffix.csv]                                                                                                                    │
+│ --diverse       --no-diverse                          If True generate diverse data, default is numeric only [default: no-diverse]                                                                                    │
+│ --label                         TEXT                  The experiment to run [default: default]                                                                                                                        │
+│ --seed                          INTEGER               The seed to use [default: 0]                                                                                                                                    │
+│ --help                                                Show this message and exit.                                                                                                                                     │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-```bash
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/append.log python src/main.py append -i=30 --show --upload
-```
-
-### Mock data
-
-```bash
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/generate.py --dir=mock --count=10 --rows=10
-python src/main.py --dir=mock --show --upload
-
-```
-
-### Taxi
-
-```bash
-export PYTHONPATH="$(pwd):$PYTHONPATH"
-python src/download.py --dir=data --download=all --limit=40
-python src/main.py --dir=data --show --upload
-```
-
-## Tests
-
-```
-
-PYTHONPATH="$(pwd):$PYTHONPATH" pytest tests
-
-python src/generate.py --dir=mock --count=10 --rows=10
-python src/main.py --dir=mock --show # for quick testing
-
-# or
-export PYTHONPATH="$(pwd):$PYTHONPATH" 
-python src/main.py --dir=mock --rows=10000
-
-```
-
-## Analyse results
-
-Visualize the results with snakeviz:
-
-```bash
-snakeviz profile.prof
-```
-
-Use jupyter notebook to analyse the results:
-
-```bash
-pip install jupyter
-jupyter notebook
-
-# open the notebook in the browser
-```
-
-All data is pointers
-
-```bash
-# deprecated
-AWS_ACCESS_KEY_ID='LAKEFS_ACCESS_KEY' AWS_SECRET_ACCESS_KEY='LAKEFS_SECRET' aws s3 ls --endpoint http://localhost:8000
-```
-
-[CLI](https://docs.lakefs.io/v0.52/reference/commands.html)
-
-```
-Upload a file:
-lakectl fs upload -s mock/0.parquet lakefs://versioning-article/main/0.parquet
-Downloading:
-lakectl fs download lakefs://<REPO>/<BRANCH>/path/to/object <DESTINATION>
-You can also leverage the --recursive flag to download/upload dirs
+* If only a single step is done, it is equivalent to `random` workflow - as we only generate a single file and upload.
+* It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and steps==1 -> label is random, otherwise it is 'append-{steps}. 
 
 
 
-```
+
+
