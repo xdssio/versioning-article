@@ -41,40 +41,41 @@ class Helper:
 
     def dvc_upload(self, filepath: str):
         self._dvc_upload(filepath)
-        return {'function': 'dvc upload', 'tech': 'dvc', 'merged': False}
+        return {'function': 'dvc upload', 'tech': 'dvc', 'name': 'dvc'}
 
     def lfs_s3_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_S3)
-        return {'function': 'lfs s3 upload', 'tech': 'lfs', 'merged': False}
+        return {'function': 'lfs s3 upload', 'tech': 'lfs', 'name': 'lfs-s3'}
 
     def lfs_git_upload(self, filepath: str):
         self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git upload', 'tech': 'lfs', 'merged': False}
+        return {'function': 'lfs git upload', 'tech': 'lfs', 'name': 'lfs-git'}
 
     def pyxet_upload(self, filepath: str):
-        self._xethub_upload(filepath)
-        return {'function': 'pyxet upload', 'tech': 'xethub', 'merged': False}
+        filename = path.basename(filepath)
+        with self.fs_xet.transaction:
+            self.fs_xet.put(filepath, f"{self.xet_pyxet_repo}/{filename}")
+        return {'function': 'pyxet upload', 'tech': 'xethub', 'name': 'pyxet'}
 
     def gitxet_upload(self, filepath: str):
-        self._xethub_upload(filepath, pyxet_api=False)
-        return {'function': 'git-xet upload', 'tech': 'xethub', 'merged': False}
+        self._git_upload(filepath, Helper.XETHUB_GIT)
+        return {'function': 'git-xet upload', 'tech': 'xethub', 'name': 'gitxet'}
 
     def lakefs_upload(self, filepath: str):
         self._lakefs_upload(filepath)
-        return {'function': 'lakefs upload', 'tech': 'lakefs', 'merged': False}
+        return {'function': 'lakefs upload', 'tech': 'lakefs', 'name': 'lakefs'}
 
     def s3_upload(self, filepath: str):
         self._s3_upload(filepath)
-        return {'function': 's3 new upload', 'tech': 's3', 'merged': False}
+        return {'function': 's3 new upload', 'tech': 's3', 'name': 's3'}
 
     def s3_copy_time(self, local_path: str, s3_path: str):
-
         with fsspec.open(local_path, 'rb') as f1:
             data = f1.read()
         start_time = time.time()
         self.fs_s3.open(s3_path, 'wb').write(data)
         end_time = time.time()
-        return {'function': 's3 copy time', 'tech': 's3', 'merged': True, 'upload_time': end_time - start_time}
+        return {'function': 's3 copy time', 'tech': 's3', 'upload_time': end_time - start_time}
 
     def xet_copy_time(self, filepath: str, xetpath: str):
         xet_fs = pyxet.XetFS()
@@ -87,14 +88,14 @@ class Helper:
                 f2.write(data)
             f2.close()
         end_time = time.time()
-        return {'function': 'xet copy time', 'tech': 'xethub', 'merged': True,
+        return {'function': 'xet copy time', 'tech': 'xethub',
                 'upload_time': end_time - start_time}
 
     def lakefs_copy_time(self, filepath: str):
         start_time = time.time()
         self._lakefs_upload(filepath)
         end_time = time.time()
-        return {'function': 'lakefs merged upload', 'tech': 'lakefs', 'merged': True,
+        return {'function': 'lakefs merged upload', 'tech': 'lakefs',
                 'upload_time': end_time - start_time}
 
     @staticmethod
@@ -146,7 +147,7 @@ class Helper:
         self._dvc_add_commit(filename)
         self._dvc_push()
 
-    def _dvc_remove(self, path:str):
+    def _dvc_remove(self, path: str):
         if not path.startswith(Helper.DVC):
             path = os.path.join(Helper.DVC, path)
         command = f"""
@@ -156,7 +157,7 @@ class Helper:
                     """
         return self.run(command, Helper.DVC)
 
-    def _remove(self, path:str, repo:str):
+    def _remove(self, path: str, repo: str):
         if repo == Helper.DVC:
             return self._dvc_remove(path)
         command = f"""
@@ -165,7 +166,7 @@ class Helper:
                     git commit -m "remove {path}"
                     git push       
                     """
-        return self.run(command,repo)
+        return self.run(command, repo)
 
     def _git_add_commit(self, filename: str, repo: str = '', commit: str = ""):
         commit = commit or filename
@@ -228,8 +229,11 @@ class Helper:
     def _lakefs_upload(self, filepath):
         self.run(f"lakectl fs upload -s {filepath} lakefs://versioning-article/main/{filepath}")
 
-    def _s3_upload(self, filepath):
-        self.run(f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}")
+    def _s3_upload(self, filepath):  # not capturing output - too noisey
+        command = f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}"
+        logger.debug(command)
+        args = {"shell": True, "capture_output": True}
+        return subprocess.run(command, **args)
 
     def s3_file_count(self, prefix: str = ''):
         response = self.s3.list_objects_v2(Bucket='versioning-article', Prefix=prefix)

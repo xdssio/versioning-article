@@ -9,9 +9,8 @@ from tqdm import tqdm
 from glob import glob
 from loguru import logger
 import pandas as pd
-from src.utils.metrics import MetricsHelper
-from src.utils.helper import Helper
-from src.utils.generators import BlogDataGenerator, DataFrameGenerator, NumericDataGenerator
+from src.helper import Helper
+from src.generators import BlogDataGenerator, DataFrameGenerator
 from xetrack import Tracker
 import pyxet
 import subprocess
@@ -20,18 +19,16 @@ gitxet_version = subprocess.run("git xet --version", shell=True, capture_output=
 
 logger.add("logs/{time}.log")
 helper = Helper()
-metrics = MetricsHelper()
 OUTPUT_DB = 'output/stats.db'
 COPY_REPOS = [Helper.XETHUB_GIT, Helper.LFS_GITHUB, Helper.LFS_S3, Helper.DVC]
 
-upload_functions = (helper.gitxet_upload,
+upload_functions = (helper.pyxet_upload,
+                    helper.s3_upload,
+                    helper.gitxet_upload,
+                    helper.lakefs_upload,
                     helper.lfs_git_upload,
                     helper.lfs_s3_upload,
                     helper.dvc_upload,
-
-                    helper.lakefs_upload,
-                    helper.s3_upload,
-                    helper.pyxet_upload,
                     )
 
 
@@ -46,7 +43,7 @@ def run_functions(tracker, filepath):
         tracker.track(func, args=[filepath])
 
 
-def benchmark_taxi_merged(iterations: int = 20):
+def benchmark_taxi_merged(iterations: int = 10):
     data_dir = 'taxi'
     files = sorted(glob(f"{data_dir}/*.parquet"))
     file_count = len(files)
@@ -78,7 +75,7 @@ def benchmark_taxi_merged(iterations: int = 20):
         os.remove(os.path.join(repo, merged_filename))
 
 
-def benchmark_taxi_new(iterations: int = 20):
+def benchmark_taxi_new(iterations: int = 10):
     data_dir = 'taxi'
     files = sorted(glob(f"{data_dir}/*.parquet"))
     file_count = len(files)
@@ -136,7 +133,6 @@ def benchmark_random(iterations: int = 100):
 def benchmark_append(iterations: int = 100, rows: int = 1, suffix: str = 'csv'):
     logger.info(f"benchmark append csv - blog - {iterations} iterations")
     data_dir = 'blog'
-    print('???')
     original = f"{data_dir}/original.csv"
     filename = f"appended.{suffix}"
     n_rows_add = rows
@@ -174,9 +170,9 @@ def benchmark_append(iterations: int = 100, rows: int = 1, suffix: str = 'csv'):
         os.remove(os.path.join(repo, filename))
 
 
-def benchmark_numeric(iterations: int = 20,
-                      n_rows_add: int = 100000,
-                      start_rows: int = 1000000,
+def benchmark_numeric(iterations: int = 10,
+                      n_rows_add: int = 10000000,
+                      start_rows: int = 100000000,
                       columns: int = 10,
                       suffix: str = 'csv'):
     logger.info(f"benchmark - numeric - {iterations} iterations")
@@ -188,20 +184,22 @@ def benchmark_numeric(iterations: int = 20,
 
     generator = NumericDataGenerator(cols=columns)
     logger.info(f"Generating {start_rows} rows")
+
     df = generator.generate_data(start_rows)
     generator.export(df, filepath)
 
-    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=True,
-                      params={'workflow': 'numeric',
-                              'n_rows_add': n_rows_add,
-                              'start_rows': start_rows,
-                              'columns': columns,
-                              'filepath': filepath,
-                              'pyxet': pyxet.__version__,
-                              'gitxet': gitxet_version,
-                              'merged': True,
-                              'file_bytes': helper.get_file_size(filepath),
-                              })
+    helper.to_mb(os.path.getsize(filepath))
+    tracker = Tracker(OUTPUT_DB, verbose=False, log_system_params=True, params={'workflow': 'numeric',
+                                                                                'n_rows_add': n_rows_add,
+                                                                                'start_rows': start_rows,
+                                                                                'columns': columns,
+                                                                                'filepath': filepath,
+                                                                                'pyxet': pyxet.__version__,
+                                                                                'gitxet': gitxet_version,
+                                                                                'merged': True,
+                                                                                'file_bytes': helper.get_file_size(
+                                                                                    filepath),
+                                                                                })
 
     logger.info(f"copying to repos...")
     copy_to_repos(filepath)  # copy to repos
@@ -329,7 +327,7 @@ if __name__ == '__main__':
     elif args.workflow == 'random':
         command = f"benchmark_random({iterations})"
     elif args.workflow == 'numeric':
-        command = f"benchmark_numeric({iterations},{n_rows_add},suffix='{args.suffix}')"
+        command = f"benchmark_numeric({iterations}, {n_rows_add}, suffix='{args.suffix}')"
     elif args.workflow == 'split':
         command = f"benchmark_split({iterations})"
     else:

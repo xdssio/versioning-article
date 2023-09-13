@@ -1,6 +1,6 @@
 from tempfile import TemporaryDirectory
-from src.utils.generators import DataFrameGenerator
-from src.utils.helper import Helper
+from src.generators import DataFrameGenerator
+from src.helper import Helper
 
 from glob import glob
 

@@ -32,7 +32,7 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/$GITUSER/xethub-py.git xethub-pyxet` # use your own repository
+1. `git xet clone https://xethub.com/$GITUSER/xethub-py.git xethub-py` # use your own repository
 2. `git xet clone https://xethub.com/xdssio/xethub-git.git xethub-git`
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
@@ -143,17 +143,32 @@ Setup:
 # Terminal 1
 (cd lfs-server && docker-compose up)
 # Terminal 2
-export AWS_ACCESS_KEY_ID
 docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
+ 
+# for debug add: 
+XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/xethub.log 
+```
+
+Pull latest data
+
+```bash
+cd lfs-github && git pull && cd .. && \
+cd lfs-s3 && git pull && cd .. && \
+cd dvc && git pull && cd .. && \
+cd xethub-git && git pull && cd .. 
 
 ```
 
 ## Workflows
 
-### Numeric non-git
+```bash
+python main.py append --tech=pyxet --step=0 --start-rows = 10 --add-rows = 10 --suffix=csv
+```
+
+### Numeric
 
 export PYTHONPATH="$(pwd):$PYTHONPATH"
-XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/numeric.log python src/main.py numeric -i=20 --show --upload
+python src/main.py numeric -i=20 --show --upload
 
 ### Append to blog csv
 

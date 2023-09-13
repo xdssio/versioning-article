@@ -1,8 +1,8 @@
 import contextlib
 import time
 import git
-from src.utils.helper import Helper
-from src.utils.generators import DataFrameGenerator, NumericDataGenerator
+from src.helper import Helper
+from src.generators import DataFrameGenerator, NumericDataGenerator
 import pytest
 from tempfile import TemporaryDirectory
 

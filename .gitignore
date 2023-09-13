@@ -162,6 +162,7 @@ cython_debug/
 dvc/
 xethub-py/
 xethub-git/
+xethub*/
 lfs-s3/
 lfs-github/
 logs/
@@ -177,5 +178,7 @@ blog/
 taxi/
 mock/
 tts/
+notebooks/xet_repo/
+data/
 
 tests/mock/
