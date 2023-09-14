@@ -219,7 +219,8 @@ def test(seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
 
 @app.command()
 def latest(rows: Annotated[int, typer.Argument(
-    help="Number of rows, if not provided, print all that belong to the latest experiment")] = None):
+    help="Number of rows, if not provided, print all that belong to the latest experiment")] = None,
+           export: Annotated[bool, typer.Option(help="Whether to export to csv")] = False):
     reader = Reader(OUTPUT_DB)
     result = reader.to_df()
     if rows is not None:
@@ -229,6 +230,8 @@ def latest(rows: Annotated[int, typer.Argument(
         result = result[result['track_id'] == latest_track]
     result = result[
         ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'track_id', 'timestamp', 'branch']]
+    if export:
+        result.to_csv('output/latest.csv', index=False)
     typer.echo(result.to_markdown())
 
 
