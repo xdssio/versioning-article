@@ -20,14 +20,13 @@ class Helper:
     XETHUB = 'xethub'
     LFS_S3 = "lfs-s3"
     LFS_GITHUB = "lfs-github"
-    XETHUB_PY = "xethub-py"
     XETHUB_GIT = "xethub-git"
 
     def __init__(self):
 
         self.s3 = boto3.client('s3')
-        self.xet_pyxet_repo = self._get_xet_repo(Helper.XETHUB_PY)
-        self.xet_git_repo = self._get_xet_repo(Helper.XETHUB_GIT)
+        self.xet_pyxet_repo = "xet://xdssio/xethub-py-3/main"
+        self.xet_git_repo = "xet://xdssio/xethub-git-3/main"
         self.fs_xet = pyxet.XetFS()
         self.fs_s3 = s3fs.S3FileSystem(anon=False)
 
@@ -40,34 +39,39 @@ class Helper:
         return f"xet://{origin[-2]}/{origin[-1].replace('.git', '')}/main"
 
     def dvc_upload(self, filepath: str):
-        self._dvc_upload(filepath)
-        return {'function': 'dvc upload', 'tech': 'dvc', 'name': 'dvc'}
+        out = self._dvc_upload(filepath)
+        return {'function': 'dvc upload', 'tech': 'dvc', 'name': 'dvc', 'out': out}
 
     def lfs_s3_upload(self, filepath: str):
-        self._lfs_upload(filepath, Helper.LFS_S3)
-        return {'function': 'lfs s3 upload', 'tech': 'lfs', 'name': 'lfs-s3'}
+        out = self._lfs_upload(filepath, Helper.LFS_S3)
+        return {'function': 'lfs s3 upload', 'tech': 'lfs', 'name': 'lfs-s3', 'out': out}
 
     def lfs_git_upload(self, filepath: str):
-        self._lfs_upload(filepath, Helper.LFS_GITHUB)
-        return {'function': 'lfs git upload', 'tech': 'lfs', 'name': 'lfs-git'}
+        out = self._lfs_upload(filepath, Helper.LFS_GITHUB)
+        return {'function': 'lfs git upload', 'tech': 'lfs', 'name': 'lfs-git', 'out': out}
 
     def pyxet_upload(self, filepath: str):
         filename = path.basename(filepath)
-        with self.fs_xet.transaction:
-            self.fs_xet.put(filepath, f"{self.xet_pyxet_repo}/{filename}")
-        return {'function': 'pyxet upload', 'tech': 'xethub', 'name': 'pyxet'}
+        out = ''
+        try:
+            with self.fs_xet.transaction:
+                self.fs_xet.put(filepath, f"{self.xet_pyxet_repo}/{filename}")
+        except Exception as e:
+            out = str(e)
+            logger.error(out)
+        return {'function': 'pyxet upload', 'tech': 'xethub', 'name': 'pyxet', 'out': out}
 
     def gitxet_upload(self, filepath: str):
-        self._git_upload(filepath, Helper.XETHUB_GIT)
-        return {'function': 'git-xet upload', 'tech': 'xethub', 'name': 'gitxet'}
+        out = self._git_upload(filepath, Helper.XETHUB_GIT)
+        return {'function': 'git-xet upload', 'tech': 'xethub', 'name': 'gitxet', 'out': out}
 
     def lakefs_upload(self, filepath: str):
-        self._lakefs_upload(filepath)
-        return {'function': 'lakefs upload', 'tech': 'lakefs', 'name': 'lakefs'}
+        out = self._lakefs_upload(filepath)
+        return {'function': 'lakefs upload', 'tech': 'lakefs', 'name': 'lakefs', 'out': out}
 
     def s3_upload(self, filepath: str):
-        self._s3_upload(filepath)
-        return {'function': 's3 new upload', 'tech': 's3', 'name': 's3'}
+        out = self._s3_upload(filepath)
+        return {'function': 's3 new upload', 'tech': 's3', 'name': 's3', 'out': out}
 
     def s3_copy_time(self, local_path: str, s3_path: str):
         with fsspec.open(local_path, 'rb') as f1:
@@ -124,18 +128,25 @@ class Helper:
                   """
         return self.run(command, repo)
 
-    def run(self, command: str, repo: str = ''):
+    def run(self, command: str, repo: str = '', verbose=True):
         logger.info(command)
         args = {"shell": True, "capture_output": True}
         if repo:
             args["cwd"] = repo
         out = subprocess.run(command, **args)
+        error = False
         if out.stdout:
             out = out.stdout.decode()
-            logger.debug(out)
         elif out.stderr:
+            error = True
             out = out.stderr.decode()
-            logger.error(out)
+        else:
+            out = ''
+        if verbose:
+            if error:
+                logger.error(out)
+            else:
+                logger.info(out)
         return out
 
     def _dvc_add_commit(self, filename: str):
@@ -236,9 +247,7 @@ class Helper:
 
     def _s3_upload(self, filepath):  # not capturing output - too noisey
         command = f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}"
-        logger.debug(command)
-        args = {"shell": True, "capture_output": True}
-        return subprocess.run(command, **args)
+        return self.run(command, verbose=False)
 
     def s3_file_count(self, prefix: str = ''):
         response = self.s3.list_objects_v2(Bucket='versioning-article', Prefix=prefix)

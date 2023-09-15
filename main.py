@@ -1,9 +1,10 @@
+import contextlib
 import os
 import shutil
 import time
+from alive_progress import alive_bar
 import typer
 from typing import List
-from tqdm import tqdm
 from typing_extensions import Annotated
 from enum import Enum
 import pyxet
@@ -125,19 +126,20 @@ def _split(tech: str,
         for path in [train_path, test_path, validation_path]:
             shutil.copyfile(path, f"{COPY_REPOS[tech]}/{os.path.basename(path)}")
     func = upload_functions.get(tech)
-    start_time = time.time()
-    for filepath in [train_path, test_path, validation_path]:
-        logger.info(f"running {func.__name__} on {filepath}")
-        params['file_size'] = helper.get_file_size(filepath)
-        params['filename'] = os.path.basename(filepath)
-        tracker.track(func, params=params, args=[filepath])
-    params['time'] = time.time() - start_time
-    params['file_size'] = params['file_size'] + (params['file_size'] * 2)
-    params['filename'] = f"splits.{suffix}"
-    params['function'] = f"split-{func.__name__}"
-    params['name'] = f"{tech}-split"
-    params['tech'] = tech
-    tracker.log(**params)
+    with contextlib.suppress(KeyError):
+        start_time = time.time()
+        for filepath in [train_path, test_path, validation_path]:
+            logger.info(f"running {func.__name__} on {filepath}")
+            params['file_size'] = helper.get_file_size(filepath)
+            params['filename'] = os.path.basename(filepath)
+            tracker.track(func, params=params, args=[filepath])
+        params['time'] = time.time() - start_time
+        params['file_size'] = params['file_size'] + (params['file_size'] * 2)
+        params['filename'] = f"splits.{suffix}"
+        params['function'] = f"split-{func.__name__}"
+        params['name'] = f"{tech}-split"
+        params['tech'] = tech
+        tracker.log(**params)
     # cleanup
     for filepath in [train_path, test_path, validation_path]:
         if os.path.exists(filepath): os.remove(filepath)
@@ -178,10 +180,11 @@ def _append(tech: str,
         logger.info(f"Copying file to {COPY_REPOS[tech]}")
         shutil.copyfile(filepath, f"{COPY_REPOS[tech]}/{filename}")
     func = upload_functions.get(tech)
-    logger.info(f"running {func.__name__}")
-    tracker.track(func, params=params, args=[filepath])
+    with contextlib.suppress(KeyError):
+        logger.info(f"running {func.__name__}")
+        tracker.track(func, params=params, args=[filepath])
     # cleanup
-    if os.path.exists(filename): os.remove(filename)
+    if os.path.exists(filepath): os.remove(filepath)
     if os.path.exists(f"{COPY_REPOS.get(tech)}/{filename}"): os.remove(f"{COPY_REPOS.get(tech)}/{filename}")
 
 
@@ -259,26 +262,30 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
     if not tech:
         tech = upload_functions.keys()
     logger.info(f"Running {workflow} with {str(tech).replace('Tech.', '')} for {steps} steps")
-    for step in tqdm(range(steps)):
-        for t in tech:
-            kwargs.update({'tech': t, 'step': step})
-            run(**kwargs)
+    with alive_bar(steps) as bar:
+        for step in range(steps):
+            for t in tech:
+                kwargs.update({'tech': t, 'step': step})
+                run(**kwargs)
+                bar()
 
 
 @app.command()
 def test(seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
     """Run a small test to make sure everything works"""
     tracker = get_default_tracker(label='test')
-    for tech in tqdm(upload_functions):
-        logger.info(f"test {tech}")
-        _append(tech=tech,
-                step=0,
-                start_rows=10,
-                add_rows=10,
-                suffix=Suffix.parquet,
-                diverse=False,
-                seed=seed,
-                tracker=tracker)
+    with alive_bar(len(upload_functions)) as bar:
+        for tech in upload_functions:
+            logger.info(f"test {tech}")
+            _append(tech=tech,
+                    step=0,
+                    start_rows=10,
+                    add_rows=10,
+                    suffix=Suffix.parquet,
+                    diverse=False,
+                    seed=seed,
+                    tracker=tracker)
+            bar()
 
 
 @app.command()

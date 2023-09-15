@@ -32,8 +32,12 @@ python src/generate.py --dir=mock --count=5 --rows=1000
 
 ### XetHub setup
 
-1. `git xet clone https://xethub.com/$GITUSER/xethub-py.git xethub-py` # use your own repository
-2. `git xet clone https://xethub.com/xdssio/xethub-git.git xethub-git`
+Generate two repos:
+
+* xethub-git # here we will use the git client
+* xethub-py # here we will use the python client
+
+1. `git xet clone https://xethub.com/xdssio/xethub-git.git xethub-git` # use your own repository
 2. [Get token](https://xethub.com/user/settings/pat) and setup as environment variables:
     ```bash
       export XET_USER_NAME=<user-name>
@@ -144,7 +148,7 @@ Setup:
 # Terminal 1
 (cd lfs-server && docker-compose up)
 # Terminal 2
-docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
+docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs:0.110.0 run --local-settings
  
 # for debug add: 
 XET_LOG_LEVEL=debug XET_LOG_PATH=`pwd`/xethub.log 
@@ -213,7 +217,8 @@ python main.py split --tech=s3 --tech=pyxet --tech=gitxet --tech=dvc --step=2 --
 
 We simulate a train,validation test split.    
 We generate a new file with a given seed (such as the first rows are always the same for the same seed) - number of rows
-is the *start rows* + *add rows X step X 2*, then split the dataframe to train, validation and test such as the last two hold the latest "add-rows".
+is the *start rows* + *add rows X step X 2*, then split the dataframe to train, validation and test such as the last two
+hold the latest "add-rows".
 Params:
 
 ```bash
