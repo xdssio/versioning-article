@@ -260,9 +260,9 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
         raise ValueError(f"Unknown workflow {workflow.name}")
 
     if not tech:
-        tech = upload_functions.keys()
+        tech = list(upload_functions.keys())
     logger.info(f"Running {workflow} with {str(tech).replace('Tech.', '')} for {steps} steps")
-    with alive_bar(steps) as bar:
+    with alive_bar(steps * len(tech)) as bar:
         for step in range(steps):
             for t in tech:
                 kwargs.update({'tech': t, 'step': step})
@@ -299,12 +299,11 @@ def latest(rows: Annotated[int, typer.Argument(
     else:
         latest_track = result.tail(1)['track_id'].iloc[0]
         result = result[result['track_id'] == latest_track]
-    result = result[
-        ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'timestamp', 'branch',
-         'filename', 'track_id']]
     if export:
         result.to_csv('output/latest.csv', index=False)
-    typer.echo(result.to_markdown())
+    columns = ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'timestamp', 'branch',
+               'filename', 'track_id']
+    typer.echo(result[columns].to_markdown())
 
 
 if __name__ == "__main__":

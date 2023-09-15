@@ -264,3 +264,18 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
 * It is recommended to provide 'label' for each run, so it will be easier to compare results. If not provided and
   steps==1 -> label is random, otherwise it is 'append-{steps}.
 
+## Ipython latest
+```python
+from xetrack import Reader
+import pandas as pd
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 1000)
+
+OUTPUT_DB = 'output/stats.db'
+reader = Reader(OUTPUT_DB)
+result = reader.to_df()
+latest_track = result.tail(1)['track_id'].iloc[0]
+result = result[result['track_id'] == latest_track]
+#result.to_csv('output/latest.csv', index=False)
+```
