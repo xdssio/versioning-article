@@ -201,14 +201,14 @@ def append(
 
 @app.command()
 def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow to execute")],
-              tech: Annotated[List[Tech], typer.Argument(help="The tech to use")] = None,
+              tech: Annotated[List[Tech], typer.Option(help="The tech to use")] = None,
               steps: Annotated[int, typer.Option(help="number of steps to run", min=1)] = 1,
               start_rows: Annotated[int, typer.Option(help="How many rows to start with")] = 100000000,
               add_rows: Annotated[int, typer.Option(help="How many rows to add")] = 10000000,
               suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.parquet,
               diverse: Annotated[
                   bool, typer.Option(help="If True generate diverse data, default is numeric only")] = False,
-              label: Annotated[str, typer.Option(help="The experiment to run", )] = None,
+              label: Annotated[str, typer.Option(help="The experiment to run", )] = 'default',
               seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
     """
     Benchmark different technologies
@@ -258,7 +258,7 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
 
     if not tech:
         tech = upload_functions.keys()
-    logger.info(f"Running {workflow} with {tech} for {steps} steps")
+    logger.info(f"Running {workflow} with {str(tech).replace('Tech.', '')} for {steps} steps")
     for step in tqdm(range(steps)):
         for t in tech:
             kwargs.update({'tech': t, 'step': step})
@@ -268,16 +268,15 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
 @app.command()
 def test(seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
     """Run a small test to make sure everything works"""
-    tracker = get_default_tracker()
+    tracker = get_default_tracker(label='test')
     for tech in tqdm(upload_functions):
         logger.info(f"test {tech}")
         _append(tech=tech,
                 step=0,
                 start_rows=10,
                 add_rows=10,
-                suffix='csv',
+                suffix=Suffix.parquet,
                 diverse=False,
-                label='test',
                 seed=seed,
                 tracker=tracker)
 

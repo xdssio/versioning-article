@@ -206,7 +206,32 @@ Params:
 Exmaple:
 
 # This create a csv file with 120 rows - it is equivalent to start with 100 rows, and append 10 rows at step 1 and 2.
-python main.py append --tech=pyxet --step=2 --start-rows = 100 --add-rows = 10 --suffix=csv
+python main.py split --tech=s3 --tech=pyxet --tech=gitxet --tech=dvc --step=2 --start-rows=100 --add-rows=10
+```
+
+### Split
+
+We simulate a train,validation test split.    
+We generate a new file with a given seed (such as the first rows are always the same for the same seed) - number of rows
+is the *start rows* + *add rows X step X 2*, then split the dataframe to train, validation and test such as the last two hold the latest "add-rows".
+Params:
+
+```bash
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --tech                          [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                    │
+│ --step                          INTEGER RANGE [x>=0]                         The step to simulate [default: 0]                                                                                                        │
+│ --start-rows                    INTEGER                                      How many rows to start with [default: 100000000]                                                                                         │
+│ --add-rows                      INTEGER                                      How many rows to add [default: 10000000]                                                                                                 │
+│ --suffix                        [csv|parquet|txt]                            What file type to save [default: Suffix.csv]                                                                                             │
+│ --diverse       --no-diverse                                                 Whether to generate numeric data [default: no-diverse]                                                                                   │
+│ --label                         TEXT                                         The experiment to run [default: default]                                                                                                 │
+│ --seed                          INTEGER                                      The seed to use [default: 0]                                                                                                             │
+│ --help                                                                       Show this message and exit.                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Exmaple:
+
+# This create a parquet file with 120 rows, a validation file with 10 rows, and a test file with 10 rows.
+python main.py split --tech=s3 --step=2 --start-rows = 100 --add-rows = 10
 ```
 
 ### Benchmark
