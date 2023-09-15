@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 import typer
 from typing import List
 from tqdm import tqdm
@@ -36,10 +37,13 @@ app = typer.Typer()
 helper = Helper()
 
 
-def get_default_tracker():
-    return Tracker(OUTPUT_DB, verbose=False, params={'pyxet': pyxet.__version__,
-                                                     'gitxet': gitxet_version,
-                                                     'branch': branch},
+def get_default_tracker(label: str = None):
+    params = {'pyxet': pyxet.__version__,
+              'gitxet': gitxet_version,
+              'branch': branch}
+    if label:
+        params['label'] = label
+    return Tracker(OUTPUT_DB, verbose=False, params=params,
                    logger=logger)
 
 
@@ -51,7 +55,6 @@ class Tech(str, Enum):
     lfs_git = "lfs-git"
     lfs_s3 = "lfs-s3"
     dvc = "dvc"
-
 
 
 class Workflows(str, Enum):
@@ -67,8 +70,15 @@ class Suffix(str, Enum):
 
 
 @app.command()
-def split():
-    _split()
+def split(tech: Annotated[Tech, typer.Option(help="The tech to use")] = Tech.pyxet,
+          step: Annotated[int, typer.Option(help="The step to simulate", min=0)] = 0,
+          start_rows: Annotated[int, typer.Option(help="How many rows to start with")] = 100000000,
+          add_rows: Annotated[int, typer.Option(help="How many rows to add")] = 10000000,
+          suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.parquet,
+          label: Annotated[str, typer.Option(help="The experiment to run")] = 'default',
+          seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
+    tracker = get_default_tracker(label=label)
+    _split(tech, step, start_rows, add_rows, suffix, seed, tracker)
 
 
 @app.command()
@@ -80,8 +90,59 @@ def _taxi():
     raise NotImplementedError
 
 
-def _split():
-    raise NotImplementedError
+def _split(tech: str,
+           step: int,
+           start_rows: int,
+           add_rows: int,
+           suffix: str,
+           seed: int,
+           tracker: Tracker):
+    params = {'workflow': 'split',
+              'tech': tech,
+              'step': step,
+              'suffix': suffix,
+              'seed': seed,
+              'start_rows': start_rows,
+              'add_rows': add_rows,
+              'numeric': True,
+              'merge': True}
+    if tracker is None:
+        logger.debug("No tracker provided, creating default tracker")
+        tracker = get_default_tracker(label='default')
+    os.makedirs('data', exist_ok=True)
+    generator = DataFrameGenerator(seed=seed, numeric=True)
+
+    train_size = start_rows + (add_rows * step)
+    df = generator.generate(train_size + (2 * add_rows))
+    train, validation, test = df.iloc[:train_size], df.iloc[train_size:train_size + add_rows], df.iloc[
+                                                                                               train_size + add_rows:]
+    train_path, test_path, validation_path = f"data/train.{suffix}", f"data/test.{suffix}", f"data/validation.{suffix}"
+    for df, path in [(train, train_path), (test, test_path), (validation, validation_path)]:
+        generator.export(df, path)
+
+    if tech in COPY_REPOS:
+        logger.info(f"Copying file to {COPY_REPOS[tech]}")
+        for path in [train_path, test_path, validation_path]:
+            shutil.copyfile(path, f"{COPY_REPOS[tech]}/{os.path.basename(path)}")
+    func = upload_functions.get(tech)
+    start_time = time.time()
+    for filepath in [train_path, test_path, validation_path]:
+        logger.info(f"running {func.__name__} on {filepath}")
+        params['file_size'] = helper.get_file_size(filepath)
+        params['filename'] = os.path.basename(filepath)
+        tracker.track(func, params=params, args=[filepath])
+    params['time'] = time.time() - start_time
+    params['file_size'] = params['file_size'] + (params['file_size'] * 2)
+    params['filename'] = f"splits.{suffix}"
+    params['function'] = f"split-{func.__name__}"
+    params['name'] = f"{tech}-split"
+    params['tech'] = tech
+    tracker.log(**params)
+    # cleanup
+    for filepath in [train_path, test_path, validation_path]:
+        if os.path.exists(filepath): os.remove(filepath)
+        if os.path.exists(f"{COPY_REPOS.get(tech)}/{os.path.basename(filepath)}"): os.remove(
+            f"{COPY_REPOS.get(tech)}/{os.path.basename(filepath)}")
 
 
 def _append(tech: str,
@@ -90,12 +151,10 @@ def _append(tech: str,
             add_rows: int,
             suffix: str,
             diverse: bool,
-            label: str,
             seed: int,
             tracker: Tracker):
     numeric = not diverse
     params = {'workflow': 'append',
-              'label': label,
               'tech': tech,
               'step': step,
               'suffix': suffix,
@@ -132,12 +191,12 @@ def append(
         step: Annotated[int, typer.Option(help="The step to simulate", min=0)] = 0,
         start_rows: Annotated[int, typer.Option(help="How many rows to start with")] = 100000000,
         add_rows: Annotated[int, typer.Option(help="How many rows to add")] = 10000000,
-        suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.csv,
+        suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.parquet,
         diverse: Annotated[bool, typer.Option(help="Whether to generate numeric data")] = False,
         label: Annotated[str, typer.Option(help="The experiment to run", )] = 'default',
         seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
-    tracker = get_default_tracker()
-    _append(tech, step, start_rows, add_rows, suffix, diverse, label, seed, tracker)
+    tracker = get_default_tracker(label=label)
+    _append(tech, step, start_rows, add_rows, suffix, diverse, seed, tracker)
 
 
 @app.command()
@@ -146,7 +205,7 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
               steps: Annotated[int, typer.Option(help="number of steps to run", min=1)] = 1,
               start_rows: Annotated[int, typer.Option(help="How many rows to start with")] = 100000000,
               add_rows: Annotated[int, typer.Option(help="How many rows to add")] = 10000000,
-              suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.csv,
+              suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.parquet,
               diverse: Annotated[
                   bool, typer.Option(help="If True generate diverse data, default is numeric only")] = False,
               label: Annotated[str, typer.Option(help="The experiment to run", )] = None,
@@ -169,7 +228,6 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
     python main.py benchmark append --steps 1 --start-rows 10 --add-rows 10
     python main.py benchmark append s3 gitxet --steps 10 --start-rows 100000000 --add-rows 10000000 --suffix csv --label default --seed 0
     """
-    tracker = get_default_tracker()
     if workflow == Workflows.append:
         if label is None:
             if steps == 1:
@@ -177,16 +235,23 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
             else:
                 label = f"append-{steps}"
         run = _append
+        tracker = get_default_tracker(label=label)
         kwargs = {'suffix': suffix,
                   'start_rows': start_rows,
                   'add_rows': add_rows,
                   'diverse': diverse,
-                  'label': label,
                   'seed': seed,
                   'tracker': tracker}
     elif workflow == Workflows.split:
-        run = split
+        run = _split
+        tracker = get_default_tracker(label=label)
+        kwargs = {'suffix': suffix,
+                  'start_rows': start_rows,
+                  'add_rows': add_rows,
+                  'seed': seed,
+                  'tracker': tracker}
     elif workflow == Workflows.taxi:
+        raise NotImplementedError("Taxi workflow is not implemented yet")
         run = taxi
     else:
         raise ValueError(f"Unknown workflow {workflow.name}")
@@ -229,7 +294,8 @@ def latest(rows: Annotated[int, typer.Argument(
         latest_track = result.tail(1)['track_id'].iloc[0]
         result = result[result['track_id'] == latest_track]
     result = result[
-        ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'track_id', 'timestamp', 'branch']]
+        ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'timestamp', 'branch',
+         'filename', 'track_id']]
     if export:
         result.to_csv('output/latest.csv', index=False)
     typer.echo(result.to_markdown())
