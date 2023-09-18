@@ -239,6 +239,22 @@ Exmaple:
 python main.py split --tech=s3 --step=2 --start-rows = 100 --add-rows = 10
 ```
 
+### Feature engineering (features)
+
+This is a simulation of a feature engineering step.
+It creates a basic file, and for each step, another random column is added.
+
+```bash
+
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --tech              [s3|pyxet|gitxet|lakefs|lfs-git|lfs-s3|dvc]  The tech to use [default: Tech.pyxet]                                                                                                       │
+│ --step              INTEGER RANGE [x>=0]                         The step to simulate [default: 0]                                                                                                           │
+│ --start-rows        INTEGER                                      How many rows to start with [default: 100000000]                                                                                            │
+│ --suffix            [csv|parquet|txt]                            What file type to save [default: Suffix.parquet]                                                                                            │
+│ --label             TEXT                                         The experiment to run [default: default]                                                                                                    │
+│ --seed              INTEGER                                      The seed to use [default: 0]                                                                                                                │
+│ --help                                                           Show this message and exit.                                                                                                                 │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯```
 ### Benchmark
 
 Execute a benchmark for a given workflow, list of technologies and multiple steps.
@@ -265,9 +281,11 @@ Execute a benchmark for a given workflow, list of technologies and multiple step
   steps==1 -> label is random, otherwise it is 'append-{steps}.
 
 ## Ipython latest
+
 ```python
 from xetrack import Reader
 import pandas as pd
+
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -277,5 +295,5 @@ reader = Reader(OUTPUT_DB)
 result = reader.to_df()
 latest_track = result.tail(1)['track_id'].iloc[0]
 result = result[result['track_id'] == latest_track]
-#result.to_csv('output/latest.csv', index=False)
+# result.to_csv('output/latest.csv', index=False)
 ```

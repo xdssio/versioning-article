@@ -48,6 +48,11 @@ class DataFrameGenerator:
             data = np.random.rand(num_rows, len(self.columns))
         return pd.DataFrame(data, columns=self.columns)
 
+    def generate_features(self, num_rows: int, num_columns: int):
+        np.random.seed(self.seed)
+        data = np.random.rand(num_rows, num_columns)
+        return pd.DataFrame(data, columns=[f"feature_{i}" for i in range(num_columns)])
+
     def export(self, df: pd.DataFrame, filepath: str):
         directory_path = os.path.dirname(filepath)
         os.makedirs(directory_path, exist_ok=True)

@@ -2,6 +2,8 @@ import contextlib
 import os
 import shutil
 import time
+
+import numpy as np
 from alive_progress import alive_bar
 import typer
 from typing import List
@@ -62,6 +64,7 @@ class Workflows(str, Enum):
     append = "append"
     split = "split"
     taxi = "taxi"
+    features = "features"
 
 
 class Suffix(str, Enum):
@@ -89,6 +92,58 @@ def taxi():
 
 def _taxi():
     raise NotImplementedError
+
+
+@app.command()
+def features(tech: Annotated[Tech, typer.Option(help="The tech to use")] = Tech.pyxet,
+             step: Annotated[int, typer.Option(help="The step to simulate", min=0)] = 0,
+             start_rows: Annotated[int, typer.Option(help="How many rows to start with")] = 100000000,
+             suffix: Annotated[Suffix, typer.Option(help="What file type to save", )] = Suffix.parquet,
+             label: Annotated[str, typer.Option(help="The experiment to run")] = 'default',
+             seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
+    tracker = get_default_tracker(label=label)
+    _features(tech, step, start_rows, suffix, seed, tracker)
+
+
+def _features(tech: str,
+              step: int,
+              start_rows: int,
+              suffix: str,
+              seed: int,
+              tracker: Tracker):
+    params = {'workflow': 'feature-engineering',
+              'tech': tech,
+              'step': step,
+              'suffix': suffix,
+              'seed': seed,
+              'start_rows': start_rows,
+              'numeric': True,
+              'merge': True}
+    if tracker is None:
+        logger.debug("No tracker provided, creating default tracker")
+        tracker = get_default_tracker(label='default')
+    os.makedirs('data', exist_ok=True)
+    generator = DataFrameGenerator(seed=seed, numeric=True)
+    filename = f"features.{suffix}"
+    filepath = f"data/{filename}"
+    df = generator.generate(start_rows)
+    data_features = generator.generate_features(start_rows, step)
+    for column in data_features.columns:
+        df[column] = data_features[column]
+
+    generator.export(df, filepath)
+    params['file_size'] = helper.get_file_size(filepath)
+    params['filename'] = filename
+    if tech in COPY_REPOS:
+        logger.info(f"Copying file to {COPY_REPOS[tech]}")
+        shutil.copyfile(filepath, f"{COPY_REPOS[tech]}/{filename}")
+    func = upload_functions.get(tech)
+    with contextlib.suppress(KeyError):
+        logger.info(f"running {func.__name__}")
+        tracker.track(func, params=params, args=[filepath])
+    # cleanup
+    if os.path.exists(filepath): os.remove(filepath)
+    if os.path.exists(f"{COPY_REPOS.get(tech)}/{filename}"): os.remove(f"{COPY_REPOS.get(tech)}/{filename}")
 
 
 def _split(tech: str,
@@ -253,6 +308,14 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
                   'add_rows': add_rows,
                   'seed': seed,
                   'tracker': tracker}
+    elif workflow == Workflows.features:
+        run = _features
+        tracker = get_default_tracker(label=label)
+        kwargs = {'suffix': suffix,
+                  'start_rows': start_rows,
+                  'seed': seed,
+                  'tracker': tracker}
+
     elif workflow == Workflows.taxi:
         raise NotImplementedError("Taxi workflow is not implemented yet")
         run = taxi
