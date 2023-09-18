@@ -180,5 +180,6 @@ mock/
 tts/
 notebooks/xet_repo/
 data/
+notebooks/iframe_figures/
 
 tests/mock/
