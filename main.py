@@ -71,6 +71,20 @@ class Suffix(str, Enum):
     txt = "txt"
 
 
+
+@app.command()
+def pull():
+    _pull()
+
+def _pull():
+    command = """
+        cd lfs-github && git pull && cd .. && \
+        cd lfs-s3 && git pull && cd .. && \
+        cd dvc && git pull && cd .. && \
+        cd xethub-git && git pull && cd .. 
+        """
+    helper.run(command, verbose=False)
+
 @app.command()
 def split(tech: Annotated[Tech, typer.Option(help="The tech to use")] = Tech.pyxet,
           step: Annotated[int, typer.Option(help="The step to simulate", min=0)] = 0,
@@ -284,6 +298,7 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
     python main.py benchmark append --steps 1 --start-rows 10 --add-rows 10
     python main.py benchmark append s3 gitxet --steps 10 --start-rows 100000000 --add-rows 10000000 --suffix csv --label default --seed 0
     """
+    _pull()
     if workflow == Workflows.append:
         if label is None:
             if steps == 1:
@@ -334,6 +349,7 @@ def benchmark(workflow: Annotated[Workflows, typer.Argument(help="The workflow t
 @app.command()
 def test(seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
     """Run a small test to make sure everything works"""
+    _pull()
     tracker = get_default_tracker(label='test')
     with alive_bar(len(upload_functions)) as bar:
         for tech in upload_functions:

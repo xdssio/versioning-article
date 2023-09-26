@@ -1,19 +1,20 @@
 import contextlib
+import os
 import time
 import git
 from src.helper import Helper
-from src.generators import DataFrameGenerator, NumericDataGenerator
+from src.generators import DataFrameGenerator
 import pytest
 from tempfile import TemporaryDirectory
 
-filename = '0.parquet'
+filename = 'test.parquet'
 filepath = f"tests/mock/{filename}"
 helper = Helper()
 
 
 @pytest.fixture(scope="session", autouse=True)
 def before_tests():
-    DataFrameGenerator().generate_mock_files('tests/mock', file_count=1, num_rows=300)
+    DataFrameGenerator().generate(400).to_parquet(filepath)
 
 
 def test_dvc_upload():
@@ -28,6 +29,9 @@ def test_lfs_s3_upload():
     helper.copy_file(filepath, helper.LFS_S3)
     helper._lfs_upload(filepath, helper.LFS_S3)
     assert helper.s3_file_count('lfs') == start_count + 1
+    os.remove(os.path.join(helper.LFS_S3, filename))
+    command = """git commit -am 'clean test' && git push"""
+    helper.run(command, repo=helper.LFS_S3)
 
 
 def test_lfs_git_upload():
@@ -37,9 +41,10 @@ def test_lfs_git_upload():
     helper.copy_file(filepath, helper.LFS_GITHUB)
     helper._lfs_upload(filepath, helper.LFS_GITHUB)
     assert helper.git_exists(filename, helper.LFS_GITHUB)
+    os.remove(os.path.join(helper.LFS_GITHUB, filename))
 
 
-def test_xethub_py_upload():
+def test_pyxet_upload():
     if filename in helper.xet_ls(helper.xet_pyxet_repo):
         helper.xet_remove(filename, helper.xet_pyxet_repo)
         time.sleep(5)
@@ -49,7 +54,7 @@ def test_xethub_py_upload():
     assert filename in helper.xet_ls(helper.xet_pyxet_repo)
 
 
-def test_xethub_git_upload():
+def test_gitxet_upload():
     if filename in helper.xet_ls(helper.xet_git_repo):
         helper.xet_remove(filename, helper.xet_git_repo)
         time.sleep(5)
@@ -60,6 +65,7 @@ def test_xethub_git_upload():
     assert filename in helper.xet_ls(helper.xet_git_repo)
     with contextlib.suppress(RuntimeError):
         helper.xet_remove(filename, helper.xet_git_repo)
+    os.remove(os.path.join(helper.XETHUB_GIT, filename))
 
 
 def test_s3_upload():
