@@ -3,7 +3,6 @@ import os
 import shutil
 import time
 
-import numpy as np
 from alive_progress import alive_bar
 import typer
 from typing import List
@@ -46,8 +45,7 @@ def get_default_tracker(label: str = None):
               'branch': branch}
     if label:
         params['label'] = label
-    return Tracker(OUTPUT_DB, verbose=False, params=params,
-                   logger=logger)
+    return Tracker(OUTPUT_DB, params=params, logger=logger)
 
 
 class Tech(str, Enum):
@@ -364,7 +362,7 @@ def latest(rows: Annotated[int, typer.Argument(
         result = result[result['track_id'] == latest_track]
     if export:
         result.to_csv('output/latest.csv', index=False)
-    columns = ['name', 'time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'timestamp', 'branch',
+    columns = ['name', 'function_time', 'label', 'tech', 'step', 'seed', 'workflow', 'file_size', 'timestamp', 'branch',
                'filename', 'track_id']
     typer.echo(result[columns].to_markdown())
 
