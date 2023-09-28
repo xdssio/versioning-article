@@ -75,6 +75,8 @@ class Helper:
 
     def s3_upload(self, filepath: str):
         out = self._s3_upload(filepath)
+        if "\rCompleted" in out:
+            out = ""
         return {'function': 's3 new upload', 'tech': 's3', 'name': 's3', 'out': out}
 
     def s3_copy_time(self, local_path: str, s3_path: str):
