@@ -9,6 +9,7 @@ import boto3
 import fsspec
 import time
 import s3fs
+from constants import LAKEFS_REPO, PYXET_REPO, GITXET_REPO, S3_BUCKET
 
 
 class Helper:
@@ -25,10 +26,13 @@ class Helper:
     def __init__(self):
 
         self.s3 = boto3.client('s3')
-        self.xet_pyxet_repo = "xet://xdssio/xethub-py-3/main"
-        self.xet_git_repo = "xet://xdssio/xethub-git-3/main"
+        self.xet_pyxet_repo = PYXET_REPO
+        self.xet_git_repo = GITXET_REPO
+        self.lakefs_repo = LAKEFS_REPO
+        self.s3_bucket = S3_BUCKET
         self.fs_xet = pyxet.XetFS()
         self.fs_s3 = s3fs.S3FileSystem(anon=False)
+
 
     @staticmethod
     def _get_xet_repo(path: str):
@@ -71,6 +75,8 @@ class Helper:
 
     def s3_upload(self, filepath: str):
         out = self._s3_upload(filepath)
+        if "\rCompleted" in out:
+            out = ""
         return {'function': 's3 new upload', 'tech': 's3', 'name': 's3', 'out': out}
 
     def s3_copy_time(self, local_path: str, s3_path: str):
@@ -129,7 +135,8 @@ class Helper:
         return self.run(command, repo)
 
     def run(self, command: str, repo: str = '', verbose=True):
-        logger.info(command)
+        if verbose:
+            logger.info(command)
         args = {"shell": True, "capture_output": True}
         if repo:
             args["cwd"] = repo
@@ -243,22 +250,22 @@ class Helper:
             self.fs_xet.rm(f"{xet_repo}/{filename}")
 
     def _lakefs_upload(self, filepath):
-        self.run(f"lakectl fs upload -s {filepath} lakefs://versioning-article/main/{filepath}")
+        self.run(f"lakectl fs upload -s {filepath} {self.lakefs_repo}/{filepath}")
 
     def _s3_upload(self, filepath):  # not capturing output - too noisey
-        command = f"aws s3 cp {filepath} s3://versioning-article/s3/{filepath}"
+        command = f"aws s3 cp {filepath} s3://{self.s3_bucket}/s3/{filepath}"
         return self.run(command, verbose=False)
 
     def s3_file_count(self, prefix: str = ''):
-        response = self.s3.list_objects_v2(Bucket='versioning-article', Prefix=prefix)
+        response = self.s3.list_objects_v2(Bucket=self.s3_bucket, Prefix=prefix)
         return response['KeyCount']
 
     def s3_remove(self, filepath: str):
-        self.run(f"aws s3 rm s3://versioning-article/s3/{filepath}")
+        self.run(f"aws s3 rm s3://{self.s3_bucket}/s3/{filepath}")
 
     def s3_file_exists(self, filepath: str):
         try:
-            self.s3.head_object(Bucket='versioning-article', Key=f's3/{filepath}')
+            self.s3.head_object(Bucket=self.s3_bucket, Key=f's3/{filepath}')
             return True
         except Exception:
             return False

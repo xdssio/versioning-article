@@ -135,9 +135,9 @@ Setup:
 2. Run using docker metadata and credentials
    ```bash
    mkdir ~/lakefs/metadata  # for persistency 
-   docker run --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs run --local-settings
-   ```
-3. Copy credentials ands save to `~/.lakefs.yaml`.
+   docker run --user=root --pull always -p 8000:8000 -e LAKEFS_BLOCKSTORE_TYPE='s3' -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -e LAKEFS_DATABASE_LOCAL_PATH=/etc/lakefs/metadata -v ~/lakefs/metadata:/etc/lakefs/metadata treeverse/lakefs:0.110.0 run --local-settings 
+   ``` 
+3. Copy credentials ands save to `~/.lakefs.yaml`. 
 4. Create a repository and connect to S3 in the UI
 
 # Run
