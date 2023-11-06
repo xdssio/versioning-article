@@ -386,9 +386,8 @@ def test(seed: Annotated[int, typer.Option(help="The seed to use")] = 0):
 
 @app.command()
 def latest(rows: Annotated[int, typer.Option(
-        help="Number of rows, if not provided")] = 20,
+        help="Number of rows to print")] = 20,
         export: Annotated[bool, typer.Option(help="Whether to export to csv")] = False):
-    """print to screen the latest n rows of the experiment"""
 
     result = logger.to_df(latest=True)
     result = result.tail(rows)
